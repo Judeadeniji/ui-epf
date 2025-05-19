@@ -15,8 +15,8 @@ export default function AuthPage() {
                     className="object-cover sm:w-[100px] sm:h-[100px]"
                 />
             </figure>
-            <Tabs defaultValue="sign-in" className="w-full max-w-sm sm:max-w-md">
-                <TabsList className="grid w-full grid-cols-2">
+            <Tabs defaultValue="sign-in" className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl">
+                <TabsList className="min-w-[400px] mx-auto">
                     <TabsTrigger value="sign-in">
                         Sign In
                     </TabsTrigger>
