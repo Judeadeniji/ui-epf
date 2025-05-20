@@ -23,7 +23,10 @@ export default defineConfig({
   dialect: "sqlite",
   schema: "./src/drizzle/schema.ts",
   out: "./.drizzle/migrations",
-  dbCredentials: {
+  dbCredentials: process.env.NODE_ENV === "production" ? {
+    url: process.env.TURSO_DATABASE_URL!,
+    token: process.env.TURSO_AUTH_TOKEN!,
+  } : {
     url: getLocalDb(),
-  }
+  },
 });

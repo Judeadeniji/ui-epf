@@ -15,11 +15,18 @@ function getLocalDb() {
     const fileUrl = url.replace("C:", "file:///C:").replace(/\\/g, "/");
     return fileUrl;
   } catch (error) {
-   throw new Error("No database file found", { cause: error });
+    throw new Error("No database file found", { cause: error });
   }
 }
 
 
-export const $client = createClient({
-    url: getLocalDb(),
-})
+export const $client = createClient(
+  process.env.NODE_ENV === "production"
+    ? {
+      url: process.env.TURSO_DATABASE_URL!,
+      authToken: process.env.TURSO_AUTH_TOKEN!,
+    }
+    : {
+      url: getLocalDb(),
+    }
+)
