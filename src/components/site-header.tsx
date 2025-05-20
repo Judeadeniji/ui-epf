@@ -1,25 +1,43 @@
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "./ui/sidebar";
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from "./ui/breadcrumb";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbSeparator,
+  BreadcrumbPage,
+} from "./ui/breadcrumb";
+import { useAppBreadcrumbs } from "@/hooks/useAppBreadcrumbs"; // Import the hook
+import { Fragment } from "react";
 
 export function SiteHeader() {
-    return (
-         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
+  const breadcrumbs = useAppBreadcrumbs(); // Use the hook
+
+  return (
+    <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+      <SidebarTrigger className="-ml-1" />
+      <Separator orientation="vertical" className="mr-2 h-4" />
+      <Breadcrumb>
+        <BreadcrumbList>
+          {breadcrumbs.map((crumb, index) => (
+            <Fragment key={crumb.href}>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">
-                  Dashboard
-                </BreadcrumbLink>
+                {crumb.isCurrent ? (
+                  <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink href={crumb.href}>
+                    {crumb.label}
+                  </BreadcrumbLink>
+                )}
               </BreadcrumbItem>
-              {/* <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Next Page</BreadcrumbPage>
-              </BreadcrumbItem> */}
-            </BreadcrumbList>
-          </Breadcrumb>
-        </header>
-    )
+              {index < breadcrumbs.length - 1 && (
+                <BreadcrumbSeparator className="hidden md:block" />
+              )}
+            </Fragment>
+          ))}
+        </BreadcrumbList>
+      </Breadcrumb>
+    </header>
+  );
 }

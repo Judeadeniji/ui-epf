@@ -1,9 +1,9 @@
 "use client"
 
 import {
+    Loader2,
     LogOutIcon,
     MoreVerticalIcon,
-    UserCircleIcon,
 } from "lucide-react"
 
 import {
@@ -14,7 +14,6 @@ import {
 import {
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
@@ -26,6 +25,9 @@ import {
     SidebarMenuItem,
     useSidebar,
 } from "@/components/ui/sidebar"
+import { signOut } from "@/lib/auth-client"
+import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 export function NavUser({
     user,
@@ -37,6 +39,7 @@ export function NavUser({
     }
 }) {
     const { isMobile } = useSidebar()
+    const router = useRouter()
 
     return (
         <SidebarMenu>
@@ -81,16 +84,26 @@ export function NavUser({
                             </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuGroup>
-                            <DropdownMenuItem>
-                                <UserCircleIcon />
-                                Account
-                            </DropdownMenuItem>
-                        </DropdownMenuGroup>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem>
+                        <DropdownMenuItem variant="destructive" onClick={() => {
+                            toast.promise(signOut({
+                                fetchOptions: {
+                                    throw: true
+                                }
+                            }), {
+                                success: () => {
+                                    router.refresh()
+                                    return "Logged out successfully"
+                                },
+                                description: "See you next time!",
+                                error: (err) => {
+                                    return err.message
+                                },
+                            })
+                        }}>
+
                             <LogOutIcon />
                             Log out
+
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

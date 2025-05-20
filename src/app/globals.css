@@ -160,3 +160,28 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Linear Progress Indicator Styles */
+.linear-progress-indicator-container {
+  @apply w-full h-1 bg-ring overflow-hidden fixed top-0 left-0 z-50;
+}
+
+.linear-progress-indicator-bar {
+  @apply h-full bg-primary;
+  animation: linear-progress-animation 1.5s infinite linear;
+}
+
+@keyframes linear-progress-animation {
+  0% {
+    width: 0%;
+    transform: translateX(-100%);
+  }
+  50% {
+    width: 100%;
+    transform: translateX(0%);
+  }
+  100% {
+    width: 0%;
+    transform: translateX(100%);
+  }
+}

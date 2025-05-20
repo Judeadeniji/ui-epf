@@ -1,8 +1,16 @@
+"use client";
+
+import dynamic from "next/dynamic";
+import { DashboardLoadingSkeleton } from "@/components/dashboard-loading-skeleton";
+
+const App = dynamic(() => import("@/admin-app"), {
+  ssr: false,
+  loading: () => <DashboardLoadingSkeleton />,
+})
+
+
 export default function DashboardPage() {
   return (
-    <div className="flex flex-col items-center justify-center h-screen">
-      <h1 className="text-4xl font-bold">Dashboard</h1>
-      <p className="mt-4 text-lg">Welcome to the dashboard!</p>
-    </div>
+      <App />
   );
 }

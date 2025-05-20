@@ -1,8 +1,7 @@
 "use client"
 
-import { MailIcon, PlusCircleIcon, type LucideIcon } from "lucide-react"
+import { type LucideIcon } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
 import {
     SidebarGroup,
     SidebarGroupContent,
@@ -10,6 +9,8 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { NavLink } from "react-router"
+import { useEffect, useState } from "react"
 
 export function NavMain({
     items,
@@ -17,6 +18,7 @@ export function NavMain({
     items: {
         title: string
         url: string
+        isIndex?: boolean
         icon?: LucideIcon
     }[]
 }) {
@@ -24,14 +26,26 @@ export function NavMain({
         <SidebarGroup>
             <SidebarGroupContent className="flex flex-col gap-2">
                 <SidebarMenu>
-                    {items.map((item) => (
-                        <SidebarMenuItem key={item.title}>
-                            <SidebarMenuButton tooltip={item.title}>
-                                {item.icon && <item.icon />}
-                                <span>{item.title}</span>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    ))}
+                    {items.map((item) => {
+                        const [isActive, setIsActive] = useState(false)
+
+                        return (
+                            <SidebarMenuItem key={item.title}>
+                                <SidebarMenuButton tooltip={item.title} isActive={isActive} asChild>
+                                    <NavLink to={item.url} end={item.isIndex}>
+                                        {({ isActive }) => {
+                                            useEffect(() => setIsActive(isActive), [isActive])
+                                            return (
+                                                <>
+                                                    {item.icon && <item.icon />}
+                                                    <span>{item.title}</span></>
+                                            )
+                                        }}
+                                    </NavLink>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        )
+                    })}
                 </SidebarMenu>
             </SidebarGroupContent>
         </SidebarGroup>

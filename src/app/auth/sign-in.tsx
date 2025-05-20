@@ -10,8 +10,10 @@ import { Loader2, Key } from "lucide-react";
 import { signIn } from "@/lib/auth-client";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function SignIn() {
+    const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -22,7 +24,9 @@ export default function SignIn() {
         await signIn.email(
             {
                 email,
-                password
+                password,
+                rememberMe,
+                callbackURL: "/dashboard",
             },
             {
                 onRequest: (ctx) => {
@@ -34,9 +38,8 @@ export default function SignIn() {
                 onError: (ctx) => {
                     toast.error(ctx.error.message || "An unexpected error occurred during sign-in.");
                 },
-                onSuccess: (ctx) => { // Changed to arrow function for consistency
+                onSuccess: () => {
                     toast.success("Successfully signed in!");
-                    // TODO: Use ctx if needed, for example: console.log("Sign-in context:", ctx);
                 },
             },
         );
@@ -118,7 +121,8 @@ export default function SignIn() {
                         onClick={async () => {
                             await signIn.passkey(
                                 {
-                                    email
+                                    email,
+                                    autoFill: true,
                                 },
                                 {
                                     onRequest: (ctx) => {
@@ -132,7 +136,7 @@ export default function SignIn() {
                                     },
                                     onSuccess: (ctx) => { // Changed to arrow function for consistency
                                         toast.success("Successfully signed in with passkey!");
-                                        // TODO: Use ctx if needed, for example: console.log("Passkey sign-in context:", ctx);
+                                        router.refresh();
                                     }
                                 },
                             )

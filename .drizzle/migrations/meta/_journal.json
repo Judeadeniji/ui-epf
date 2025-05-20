@@ -15,6 +15,34 @@
       "when": 1747669767236,
       "tag": "0001_lethal_masque",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1747693254146,
+      "tag": "0002_gigantic_terror",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1747704976236,
+      "tag": "0003_same_bromley",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1747705435335,
+      "tag": "0004_brainy_azazel",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1747706090456,
+      "tag": "0005_unusual_hex",
+      "breakpoints": true
     }
   ]
 }
