@@ -1,9 +1,18 @@
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { PropsWithChildren } from "react";
 
-export default function AdminLayout({ children }: PropsWithChildren) {
+export default async function AdminLayout({ children }: PropsWithChildren) {
+    const session = await auth.api.getSession({
+        headers: await headers(),
+    });
+    if (!session) {
+        redirect("/auth");
+    }
     return (
-       <main>
-        {children}
-       </main>
+        <main>
+            {children}
+        </main>
     );
 }
