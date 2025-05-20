@@ -1,8 +1,6 @@
 import { server } from "@/server";
 import { handle } from "hono/vercel";
 
-export const runtime = "edge";
-
 export const GET = handle(server);
 export const POST = handle(server);
 export const PUT = handle(server);
