@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { readdirSync } from "fs";
 import path from "path";
 import { defineConfig } from "drizzle-kit";
@@ -19,13 +20,17 @@ function getLocalDb() {
   }
 }
 
+const isProduction = process.env.NODE_ENV === "production";
+
+console.log("Client URL:", isProduction ? process.env.TURSO_DATABASE_URL : getLocalDb());
+
 export default defineConfig({
-  dialect: "sqlite",
+  dialect: isProduction ? "turso" : "sqlite",
   schema: "./src/drizzle/schema.ts",
   out: "./.drizzle/migrations",
-  dbCredentials: process.env.NODE_ENV === "production" ? {
+  dbCredentials: isProduction ? {
     url: process.env.TURSO_DATABASE_URL!,
-    token: process.env.TURSO_AUTH_TOKEN!,
+    authToken: process.env.TURSO_AUTH_TOKEN!,
   } : {
     url: getLocalDb(),
   },
