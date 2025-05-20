@@ -2,8 +2,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SignIn from "./sign-in";
 import SignUp from "./sign-up";
 import Image from "next/image";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 
-export default function AuthPage() {
+export default async function AuthPage() {
+    const h = await headers();
+    const session = await auth.api.getSession({
+        headers: h
+    });
+    if (session) {
+        redirect("/dashboard");
+    }
     return (
         <main className="flex flex-col min-h-screen items-center justify-center bg-background p-4 sm:p-6 md:p-8 lg:py-24 relative">
             <figure className="absolute top-4 left-4 sm:top-6 sm:left-6 md:top-8 md:left-8">

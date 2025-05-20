@@ -17,7 +17,7 @@ import {
 import Image from "next/image"
 import { NavUser } from "./nav-user"
 import { NavMain } from "./nav-main"
-import { useSession } from "@/lib/auth-client"
+import { useAppContext } from "@/admin-app/app-context"
 
 const data = {
   navMain: [
@@ -41,7 +41,7 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { data: session } = useSession()
+  const { data: session } = useAppContext()
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>

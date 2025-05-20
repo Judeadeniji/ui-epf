@@ -32,6 +32,7 @@ const EnglishProficiencyForm = () => {
     const [graduationDate, setGraduationDate] = useState<Date | undefined>(undefined);
     const [certificateFile, setCertificateFile] = useState<File | null>(null);
     const [paymentReceiptFile, setPaymentReceiptFile] = useState<File | null>(null);
+    const [modeOfPostage, setModeOfPostage] = useState<string>("");
 
     useEffect(() => {
         if (state.success && state.message) {
@@ -241,6 +242,7 @@ const EnglishProficiencyForm = () => {
                                     className="mt-2 space-y-2"
                                     required
                                     defaultValue=""
+                                    onValueChange={setModeOfPostage}
                                 >
                                     {["EMAIL", "HAND COLLECTION"].map(mode => (
                                         <div key={mode} className="flex items-center">
@@ -253,11 +255,13 @@ const EnglishProficiencyForm = () => {
                                 </RadioGroup>
                                 {state.fieldErrors?.mode_of_postage && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.mode_of_postage}</p>}
                             </div>
-                            <div className="space-y-1.5">
-                                <Label htmlFor="recipient_email" className="font-medium">Recipient Email Address <span className="text-red-500">*</span></Label>
-                                <Input id="recipient_email" type="email" name="recipient_email" required placeholder="E.g., recipient@example.com" />
-                                {state.fieldErrors?.recipient_email && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.recipient_email}</p>}
-                            </div>
+                            {modeOfPostage === "EMAIL" && (
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="recipient_email" className="font-medium">Recipient Email Address <span className="text-red-500">*</span></Label>
+                                    <Input id="recipient_email" type="email" name="recipient_email" required={modeOfPostage === "EMAIL"} placeholder="E.g., recipient@example.com" />
+                                    {state.fieldErrors?.recipient_email && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.recipient_email}</p>}
+                                </div>
+                            )}
                         </fieldset>
 
                         <Separator className="my-8" />

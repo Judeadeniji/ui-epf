@@ -1,18 +1,37 @@
 import { db } from '@/drizzle/db';
 import { application, applicationHash } from '@/drizzle/schema';
-import { Hono } from 'hono';
+import { Hono, MiddlewareHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { count, eq } from 'drizzle-orm';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { FormDataState } from '@/lib/utils';
+import { auth } from '@/lib/auth';
+import { Session, User } from 'better-auth';
 
-/**
- * We trust NextJS Middleware enough to leave this part of the app unprotected.
- * No Middleware was applied to these routes because NextJS Middleware is already doing a check for us.
- * If this was to get bypassed, it would mean that the NextJS Middleware was bypassed too.
- * So we are safe. Except if there is a bug in NextJS Middleware.
- */
+
+const verifyAuth: MiddlewareHandler<{
+    Variables: {
+        session: {
+            user: User;
+            session: Session;
+        }
+    }
+}> = async (c, next) => {
+    const headers = c.req.raw.headers;
+    const session = await auth.api.getSession({
+        headers
+    });
+
+    if (!session) {
+        return c.json({
+            status: false,
+            message: "Unauthorized",
+        }, 401);
+    }
+
+    c.set("session", session);
+    return next();
+}
 
 const server = new Hono().basePath('/api/v1')
 
@@ -30,7 +49,7 @@ const server = new Hono().basePath('/api/v1')
         }, 500);
     })
 
-    .get("/applications", async (c) => {
+    .get("/applications", verifyAuth, async (c) => {
         const applications = await db.select().from(applicationHash).innerJoin(application, eq(applicationHash.application_id, application._id));
         return c.json({
             status: true,
@@ -62,7 +81,7 @@ const server = new Hono().basePath('/api/v1')
             }
         }),
     })), async (c) => {
-        const { certificate_file, payment_receipt_file, ...formData} = c.req.valid("form");
+        const { certificate_file, payment_receipt_file, ...formData } = c.req.valid("form");
 
         try {
 
@@ -126,7 +145,7 @@ const server = new Hono().basePath('/api/v1')
         }
     })
 
-    .get("/applications/stats", async (c) => {
+    .get("/applications/stats", verifyAuth, async (c) => {
         try {
             const totalApplications = await db.select({ value: count() }).from(applicationHash).get({ value: 0 });
             const pendingApplications = await db.select({ value: count() }).from(applicationHash).where(eq(applicationHash.status, "pending")).get({ value: 0 });
@@ -153,7 +172,7 @@ const server = new Hono().basePath('/api/v1')
             }, 500);
         }
     })
-    .get("/applications/:id", async (c) => {
+    .get("/applications/:id", verifyAuth, async (c) => {
         const id = c.req.param("id");
         if (!id) {
             return c.json({
@@ -163,6 +182,46 @@ const server = new Hono().basePath('/api/v1')
         }
 
         const applicationData = await db.select().from(applicationHash).where(eq(applicationHash.application_id, id)).innerJoin(application, eq(applicationHash.application_id, application._id)).get();
+        if (!applicationData) {
+            return c.json({
+                status: false,
+                error: "Application not found",
+            }, 404);
+        }
+
+        return c.json({
+            status: true,
+            data: applicationData,
+        })
+    })
+
+    .post("/applications/:id", verifyAuth, async (c) => {
+        const id = c.req.param("id");
+        const { user } = c.var.session;
+        if (!id) {
+            return c.json({
+                status: false,
+                error: "Missing application ID",
+            }, 400);
+        }
+        const formData = await c.req.parseBody({
+            dot: true,
+        });
+
+        const decision = formData.decision as string;
+        if (decision !== "approve" && decision !== "reject") {
+            return c.json({
+                status: false,
+                error: "Invalid decision",
+            }, 400);
+        } 
+
+        const applicationData = await db.update(applicationHash).set({
+            status: decision === "approve" ? "approved" : "rejected",
+            approved_by: user.id,
+            reason: formData.feedback as string,
+        }).where(eq(applicationHash.application_id, id)).returning().get();
+
         if (!applicationData) {
             return c.json({
                 status: false,

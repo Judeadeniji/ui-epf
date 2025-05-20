@@ -11,22 +11,6 @@ export async function middleware(request: NextRequest) {
 			cookie: request.headers.get("cookie") || "", // Forward the cookies from the request
 		},
 	});
-
-	if (request.nextUrl.pathname.startsWith("/api/v1/admin")) {
-		if (session) {
-			return NextResponse.next();
-		}
- 
-		return NextResponse.json(
-			{ status: false, message: "Unauthorized" },
-			{
-				status: 401,
-				headers: {
-					"Set-Cookie": `auth=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`,
-				},
-			}
-		);
-	}
  
 	if (!session) {
 		return NextResponse.redirect(new URL("/auth", request.url));
@@ -36,5 +20,5 @@ export async function middleware(request: NextRequest) {
 }
  
 export const config = {
-	matcher: ["/dashboard", "/api/v1/admin/:path*"],
+	matcher: ["/dashboard"],
 };

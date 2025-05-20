@@ -10,7 +10,7 @@ export function DashboardPage() {
     return (
         <div className="flex flex-col min-h-screen bg-muted/40 p-4 sm:p-6 gap-y-4">
             <header>
-                <h1 className="text-3xl font-bold tracking-tight text-foreground">Admin Dashboard</h1>
+                <h1 className="text-3xl font-bold tracking-tight text-primary">Admin Dashboard</h1>
                 <p className="mt-1 text-muted-foreground">Overview of system activity and application statuses.</p>
             </header>
 

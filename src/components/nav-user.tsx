@@ -1,7 +1,6 @@
 "use client"
 
 import {
-    Loader2,
     LogOutIcon,
     MoreVerticalIcon,
 } from "lucide-react"
@@ -27,7 +26,6 @@ import {
 } from "@/components/ui/sidebar"
 import { signOut } from "@/lib/auth-client"
 import { toast } from "sonner"
-import { useRouter } from "next/navigation"
 
 export function NavUser({
     user,
@@ -39,8 +37,6 @@ export function NavUser({
     }
 }) {
     const { isMobile } = useSidebar()
-    const router = useRouter()
-
     return (
         <SidebarMenu>
             <SidebarMenuItem>
@@ -91,7 +87,7 @@ export function NavUser({
                                 }
                             }), {
                                 success: () => {
-                                    router.refresh()
+                                    window.location.reload()
                                     return "Logged out successfully"
                                 },
                                 description: "See you next time!",

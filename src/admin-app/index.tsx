@@ -17,6 +17,8 @@ import { LinearProgressIndicator } from "@/components/ui/linear-progress-indicat
 import { cn } from "@/lib/utils";
 import { SingleApplicationPage } from "./application-page";
 import { SettingsPage } from "./settings-page";
+import { AppContext } from "./app-context";
+import { SingleApplicationAction } from "./actions";
 
 const router = createBrowserRouter([
     {
@@ -26,18 +28,25 @@ const router = createBrowserRouter([
             const isNavigating = Boolean(navigation.location);
 
             return (
-                <SidebarProvider>
-                    <AppSidebar />
-                    <SidebarInset className="relative">
-                        <SiteHeader />
-                        {isNavigating && <LinearProgressIndicator isLoading={isNavigating} />}
-                        <section className={cn(isNavigating && "absolute inset-0 z-10 bg-white/70")} />
-                        <Outlet />
-                    </SidebarInset>
-                </SidebarProvider>
+                <AppContext>
+                    <SidebarProvider>
+                        <AppSidebar />
+                        <SidebarInset className="relative">
+                            <SiteHeader />
+                            {isNavigating && <LinearProgressIndicator isLoading={isNavigating} />}
+                            <section className={cn(isNavigating && "absolute inset-0 z-10 bg-white/70")} />
+                            <Outlet />
+                        </SidebarInset>
+                    </SidebarProvider>
+                </AppContext>
             )
         },
         ErrorBoundary: AppErrorBoundary,
+        HydrateFallback: () => (
+            <div className="min-h-screen">
+                <LinearProgressIndicator isLoading={true} />
+            </div>
+        ),
         children: [
             {
                 Component: DashboardPage,
@@ -53,6 +62,7 @@ const router = createBrowserRouter([
                 path: "applications/:id",
                 Component: SingleApplicationPage,
                 loader: singleApplicationLoader,
+                action: SingleApplicationAction,
             },
             {
                 path: "settings",

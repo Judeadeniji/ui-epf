@@ -41,7 +41,7 @@ export const application = sqliteTable("application", {
     reference_number: text("reference_number"),
     recipient_address: text("recipient_address").notNull(),
     mode_of_postage: text("mode_of_postage").notNull(),
-    recipient_email: text("recipient_email").notNull(),
+    recipient_email: text("recipient_email"), // could be null if mode_of_postage is not email
     remita_rrr: text("remita_rrr").notNull(),
     certificate_file: text("certificate_file").notNull(),
     payment_receipt_file: text("payment_receipt_file").notNull(),
@@ -51,6 +51,7 @@ export const applicationHash = sqliteTable("application_hash", {
     _id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     application_id: text("application_id").notNull().references(() => application._id),
     status: text("status", { enum: ["pending", "approved", "rejected"] }).notNull(),
+    processed_document_link: text("processed_document_link"),
     created_at: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
     updated_at: integer("updated_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
     approved_by: text("approved_by").references(() => user.id),

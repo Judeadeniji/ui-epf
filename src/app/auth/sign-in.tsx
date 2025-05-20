@@ -122,7 +122,6 @@ export default function SignIn() {
                             await signIn.passkey(
                                 {
                                     email,
-                                    autoFill: true,
                                 },
                                 {
                                     onRequest: (ctx) => {

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useSession, signOut, authClient, useListPasskeys } from '@/lib/auth-client';
+import { useState, useEffect, ChangeEventHandler, FormEventHandler } from 'react';
+import { signOut, authClient, useListPasskeys } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,12 +9,17 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { useAppContext } from './app-context';
 
 export function SettingsPage() {
-    const { data, isPending } = useSession();
+    const { data, isPending } = useAppContext();
     const { data: passkeys, isPending: passkeyPending, error: passkeyError, refetch: refetchPassKey } = useListPasskeys();
     const [loading, setLoading] = useState(false);
-    const [profileForm, setProfileForm] = useState({
+    const [profileForm, setProfileForm] = useState<{
+        name: string;
+        email: string;
+        newImage: File | null;
+    }>({
         name: '',
         email: '',
         newImage: null,
@@ -37,7 +42,7 @@ export function SettingsPage() {
         }
     }, [data]);
 
-    const handleProfileUpdate = async (e) => {
+    const handleProfileUpdate: FormEventHandler = async (e) => {
         e.preventDefault();
         if (!data?.user) return;
 
@@ -69,7 +74,7 @@ export function SettingsPage() {
         }
     };
 
-    const handlePasswordUpdate = async (e) => {
+    const handlePasswordUpdate: FormEventHandler = async (e) => {
         e.preventDefault();
 
         // Validate passwords match
@@ -110,8 +115,8 @@ export function SettingsPage() {
         }
     };
 
-    const handleImageChange = (e) => {
-        const file = e.target.files?.[0];
+    const handleImageChange: ChangeEventHandler = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
         if (file) {
             setProfileForm(prev => ({ ...prev, newImage: file }));
         }
@@ -381,8 +386,8 @@ export function SettingsPage() {
                             <CardContent>
                                 <Button
                                     variant="destructive"
-                                    onClick={() => {
-                                        signOut();
+                                    onClick={async () => {
+                                        await authClient.revokeOtherSessions();
                                         toast.success('Signed out from all devices');
                                     }}
                                 >

@@ -10,6 +10,7 @@ import {
 } from "./ui/breadcrumb";
 import { useAppBreadcrumbs } from "@/hooks/useAppBreadcrumbs"; // Import the hook
 import { Fragment } from "react";
+import { Link } from "react-router";
 
 export function SiteHeader() {
   const breadcrumbs = useAppBreadcrumbs(); // Use the hook
@@ -26,8 +27,10 @@ export function SiteHeader() {
                 {crumb.isCurrent ? (
                   <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
                 ) : (
-                  <BreadcrumbLink href={crumb.href}>
-                    {crumb.label}
+                  <BreadcrumbLink asChild>
+                    <Link to={crumb.href}>
+                      {crumb.label}
+                    </Link>
                   </BreadcrumbLink>
                 )}
               </BreadcrumbItem>

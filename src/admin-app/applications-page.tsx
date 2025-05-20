@@ -75,7 +75,7 @@ export function ApplicationsPage() {
   return (
     <div className="flex flex-col min-h-screen bg-muted/40 p-4 sm:p-6 gap-y-4">
       <header>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Manage Applications</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-primary">Manage Applications</h1>
         <p className="mt-1 text-muted-foreground">
           View, filter, and manage all submitted applications.
         </p>
