@@ -1,4 +1,5 @@
 import { useSession } from "@/lib/auth-client";
+import { redirect } from "next/navigation";
 import { createContext, use } from "react";
 import { Navigate } from "react-router";
 
@@ -9,7 +10,7 @@ const appContext = createContext<AppContextType | null>(null)
 export function useAppContext() {
     const context = use(appContext);
     if (!context) {
-        throw new Error("useAppContext() must be used within an AppContextProvider");
+        redirect("/auth");
     }
     return context;
 }

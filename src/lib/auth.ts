@@ -6,6 +6,16 @@ import { passkey } from "better-auth/plugins/passkey";
 
 export const auth = betterAuth({
     database: drizzleAdapter(db, { provider: "sqlite" }),
+    ...(process.env.NODE_ENV === "development" ? {
+        trustedOrigins(request) {
+        const host = request.headers.get("host");
+        if (!host) {
+            return [];
+        }
+
+        return [process.env.BETTER_AUTH_URL!, `http://${host}`];
+    }
+    } : {}),
     emailAndPassword: {
         enabled: true,
         async sendResetPassword(data, request) {

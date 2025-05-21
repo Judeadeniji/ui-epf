@@ -91,6 +91,7 @@ export function SettingsPage() {
 
         setLoading(true);
         try {
+            await authClient.revokeOtherSessions();
             // Implement password update logic here
             await authClient.changePassword({
                 currentPassword: passwordForm.currentPassword,

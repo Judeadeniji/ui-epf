@@ -15,18 +15,22 @@ export default async function AuthPage() {
         redirect("/dashboard");
     }
     return (
-        <main className="flex flex-col min-h-screen items-center justify-center bg-background p-4 sm:p-6 md:p-8 lg:py-24 relative">
-            <figure className="absolute top-4 left-4 sm:top-6 sm:left-6 md:top-8 md:left-8">
+        <main className="p-4">
+            <figure className="mb-4 flex items-center gap-x-2">
                 <Image
                     src="/UI_logo.png"
                     alt="Logo"
-                    width={80} 
-                    height={80} 
-                    className="object-cover sm:w-[100px] sm:h-[100px]"
+                    width={100} 
+                    height={100} 
+                    className="object-cover sm:w-[80px] sm:h-[80px] md:w-[100px] md:h-[100px]"
+                    priority
                 />
+                <figcaption className="text-center text-xl font-bold font-mono text-primary leading-snug">
+                    University of Ibadan
+                </figcaption>
             </figure>
-            <Tabs defaultValue="sign-in" className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl">
-                <TabsList className="min-w-[400px] mx-auto">
+            <Tabs defaultValue="sign-in" className="mx-auto sm:w-fit">
+                <TabsList className="mx-auto w-full">
                     <TabsTrigger value="sign-in">
                         Sign In
                     </TabsTrigger>
@@ -34,14 +38,13 @@ export default async function AuthPage() {
                         Sign Up
                     </TabsTrigger>
                 </TabsList>
-                <TabsContent value="sign-in">
+                <TabsContent value="sign-in" className="w-full sm:w-md">
                     <SignIn />
                 </TabsContent>
-                <TabsContent value="sign-up">
+                <TabsContent value="sign-up" className="w-full sm:w-lg">
                     <SignUp />
                 </TabsContent>
             </Tabs>
-
         </main>
     );
 }
