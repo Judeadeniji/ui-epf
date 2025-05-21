@@ -7,7 +7,40 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { Session, User } from 'better-auth';
+import { Resend } from 'resend';
+import { EmailTemplate } from '@/components/email-template';
+import { EmailBody } from '@/components/email-body';
+import fs from 'fs/promises';
+import path from 'path';
 
+const resend = new Resend(process.env.RESEND_API_KEY);
+const EMAIL_FROM = 'University of Ibadan <test@ui-epf.onrender.com>';
+
+// Helper function to save files
+const saveFile = async (file: File, subfolder: string): Promise<string | undefined> => {
+    if (!file || file.size === 0) return undefined;
+
+    try {
+        // Ensure the base 'public/uploads' directory exists relative to the project root
+        const baseUploadsDir = path.join(process.cwd(), 'public', 'uploads');
+        const uploadsDir = path.join(baseUploadsDir, subfolder);
+        
+        await fs.mkdir(uploadsDir, { recursive: true }); // Ensure specific subfolder directory exists
+
+        // Sanitize filename to prevent path traversal and other issues
+        const sanitizedFileName = path.basename(file.name);
+        const filePath = path.join(uploadsDir, sanitizedFileName);
+        
+        const arrayBuffer = await file.arrayBuffer();
+        await fs.writeFile(filePath, Buffer.from(arrayBuffer));
+
+        // Return the public path for the file
+        return `/uploads/${subfolder}/${sanitizedFileName}`;
+    } catch (error) {
+        console.error(`Failed to save file ${file.name}:`, error);
+        return undefined;
+    }
+};
 
 const verifyAuth: MiddlewareHandler<{
     Variables: {
@@ -69,7 +102,7 @@ const server = new Hono().basePath('/api/v1')
         degree_awarded: z.string().min(1, "Degree awarded is required"),
         mode_of_postage: z.string().min(1, "Mode of postage is required"),
         recipient_address: z.string().min(1, "Recipient address is required"),
-        recipient_email: z.string().email("Invalid email address"),
+        recipient_email: z.string().email("Invalid email address").optional(),
         remita_rrr: z.string().min(1, "Remita RRR is required"),
         reference_number: z.string().optional(),
         department: z.string().min(1, "Department is required"),
@@ -84,33 +117,44 @@ const server = new Hono().basePath('/api/v1')
         const { certificate_file, payment_receipt_file, ...formData } = c.req.valid("form");
 
         try {
-
             const fieldErrors: Record<string, string> = {};
 
             if (!certificate_file) {
                 fieldErrors.certificate_file = "Certificate file is required.";
+            } else if (certificate_file.size === 0) {
+                fieldErrors.certificate_file = "Certificate file cannot be empty.";
             }
+
             if (!payment_receipt_file) {
                 fieldErrors.payment_receipt_file = "Payment receipt file is required.";
+            } else if (payment_receipt_file.size === 0) {
+                fieldErrors.payment_receipt_file = "Payment receipt file cannot be empty.";
             }
-
-            // --- Placeholder file upload logic ---
-            // In a real app, upload files and get their URLs/paths.
-            // For now, using placeholders if files exist.
-            const certificateFilePath = certificate_file ? `uploads/${certificate_file.name}` : undefined;
-            const paymentReceiptFilePath = payment_receipt_file ? `uploads/${payment_receipt_file.name}` : undefined;
-            // --- End Placeholder ---
-
 
             if (Object.keys(fieldErrors).length > 0) {
                 return c.json({ success: false, error: "Validation failed. Please check the highlighted fields.", fieldErrors }, 400);
             }
 
+            // Actual file upload logic
+            const certificateFilePath = await saveFile(certificate_file, 'certificates');
+            const paymentReceiptFilePath = await saveFile(payment_receipt_file, 'receipts');
+
+            if (!certificateFilePath) {
+                fieldErrors.certificate_file = "Failed to upload certificate file.";
+            }
+            if (!paymentReceiptFilePath) {
+                fieldErrors.payment_receipt_file = "Failed to upload payment receipt file.";
+            }
+
+            if (Object.keys(fieldErrors).length > 0) {
+                return c.json({ success: false, error: "File upload failed. Please check the highlighted fields and try again.", fieldErrors }, 400);
+            }
+
             const result = await db.transaction(async (tx) => {
                 const applicationInsertResult = await tx.insert(application).values({
                     ...formData,
-                    certificate_file: `${certificateFilePath}`,
-                    payment_receipt_file: `${paymentReceiptFilePath}`,
+                    certificate_file: certificateFilePath!,
+                    payment_receipt_file: paymentReceiptFilePath!,
                 }).returning({
                     id: application._id,
                 }).get();
@@ -124,10 +168,50 @@ const server = new Hono().basePath('/api/v1')
                     status: "pending",
                 });
 
+                // Send email on successful application
+                const applicantName = `${formData.firstname} ${formData.surname}`;
+                const emailSubject = "Application Submitted Successfully";
+                const emailBodyContent = EmailBody({
+                    decision: "submit", // Using a new type or adapting existing for submission
+                    applicantName,
+                    appUrl: process.env.NEXT_PUBLIC_APP_URL
+                });
+
+                try {
+                    const { error: emailError } = await resend.emails.send({
+                        from: EMAIL_FROM,
+                        to: formData.email, // Send to the applicant's email
+                        subject: emailSubject,
+                        react: EmailTemplate({
+                            name: applicantName,
+                            subject: emailSubject,
+                            body: await emailBodyContent,
+                            companyName: "University of Ibadan",
+                            logoUrl: `${process.env.NEXT_PUBLIC_APP_URL}/UI_logo.png`,
+                            previewText: "Your application has been received.",
+                        })
+                    });
+
+                    if (emailError) {
+                        return c.json({
+                            success: true,
+                            message: `Application submitted successfully! However, there was an error sending the confirmation email.`,
+                            error: emailError.message,
+                            fieldErrors: {}
+                        });
+                    }
+                } catch (e) {
+                    return c.json({
+                        success: true,
+                        message: `Application submitted successfully! However, there was an error sending the confirmation email.`,
+                        error: (e as Error).message,
+                        fieldErrors: {}
+                    });
+                }
+
                 return c.json(
                     {
                         success: true,
-                        applicationId: applicationInsertResult.id,
                         message: `Application submitted successfully!`,
                         error: null,
                         fieldErrors: {}
@@ -199,40 +283,146 @@ const server = new Hono().basePath('/api/v1')
         const id = c.req.param("id");
         const { user } = c.var.session;
         if (!id) {
-            return c.json({
-                status: false,
-                error: "Missing application ID",
-            }, 400);
+            return c.json(
+                {
+                    status: false,
+                    error: "Missing application ID",
+                },
+                400
+            );
         }
-        const formData = await c.req.parseBody({
+        const formBody = await c.req.parseBody({
             dot: true,
         });
 
-        const decision = formData.decision as string;
+        const decision = formBody.decision as string;
+        const feedback = formBody.feedback as string | undefined;
+        const docFile = formBody['doc-upload'] as File | undefined;
+
         if (decision !== "approve" && decision !== "reject") {
-            return c.json({
-                status: false,
-                error: "Invalid decision",
-            }, 400);
-        } 
+            return c.json(
+                {
+                    status: false,
+                    error: "Invalid decision",
+                },
+                400
+            );
+        }
 
-        const applicationData = await db.update(applicationHash).set({
-            status: decision === "approve" ? "approved" : "rejected",
-            approved_by: user.id,
-            reason: formData.feedback as string,
-        }).where(eq(applicationHash.application_id, id)).returning().get();
+        let processedDocumentLink: string | undefined = undefined;
+        if (decision === "approve" && docFile) {
+            if (docFile.size === 0) {
+                return c.json(
+                    {
+                        status: false,
+                        error: "Uploaded document file cannot be empty.",
+                    },
+                    400
+                );
+            }
+            processedDocumentLink = await saveFile(docFile, 'processed_documents');
+            if (!processedDocumentLink) {
+                return c.json(
+                    {
+                        status: false,
+                        error: "Failed to upload processed document.",
+                    },
+                    500
+                );
+            }
+            console.log(`Uploaded processed document to: ${processedDocumentLink}`);
+        }
 
-        if (!applicationData) {
-            return c.json({
-                status: false,
-                error: "Application not found",
-            }, 404);
+        const updatedApplicationHash = await db
+            .update(applicationHash)
+            .set({
+                status: decision === "approve" ? "approved" : "rejected",
+                approved_by: user.id,
+                reason: feedback,
+                processed_document_link: processedDocumentLink,
+            })
+            .where(eq(applicationHash.application_id, id))
+            .returning()
+            .get();
+
+        if (!updatedApplicationHash) {
+            return c.json(
+                {
+                    status: false,
+                    error: "Application not found or failed to update",
+                },
+                404
+            );
+        }
+
+        const appDetails = await db
+            .select({
+                email: application.email,
+                firstname: application.firstname,
+                surname: application.surname,
+                mode_of_postage: application.mode_of_postage,
+                recipient_email: application.recipient_email,
+            })
+            .from(application)
+            .where(eq(application._id, id))
+            .get();
+
+        if (!appDetails) {
+            console.error(`Failed to fetch details for application ID: ${id} after update.`);
+        } else {
+            const applicantName = `${appDetails.firstname} ${appDetails.surname}`;
+            const recipientEmail = appDetails.recipient_email;
+
+            let emailSubject = '';
+
+            const emailBodyContent = EmailBody({
+                decision: decision as 'approve' | 'reject',
+                applicantName,
+                feedback,
+                modeOfPostage: appDetails.mode_of_postage,
+                processedDocumentLink,
+                appUrl: process.env.NEXT_PUBLIC_APP_URL
+            });
+
+            if (decision === "approve") {
+                emailSubject = "Your Application has been Approved";
+            } else {
+                emailSubject = "Update on Your Application";
+            }
+
+            if (appDetails.mode_of_postage.toLowerCase() === "email" && recipientEmail) {
+                try {
+                    const { data, error: emailError } = await resend.emails.send({
+                        from: EMAIL_FROM,
+                        to: recipientEmail,
+                        subject: emailSubject,
+                        react: EmailTemplate({
+                            name: applicantName,
+                            subject: emailSubject,
+                            body: await emailBodyContent,
+                            companyName: "University of Ibadan",
+                            logoUrl: `${process.env.NEXT_PUBLIC_APP_URL}/UI_logo.png`,
+                            previewText: emailSubject,
+                        })
+                    });
+
+                    if (emailError) {
+                        console.error("Resend API Error:", emailError);
+                    } else {
+                        console.log("Email sent successfully:", data);
+                    }
+                } catch (e) {
+                    console.error("Failed to send email:", e);
+                }
+            } else if (appDetails.mode_of_postage.toLowerCase() === "email" && !recipientEmail) {
+                console.warn(`Application ${id} has mode of postage EMAIL but no recipient_email. Skipping email.`);
+            }
         }
 
         return c.json({
             status: true,
-            data: applicationData,
-        })
+            data: updatedApplicationHash,
+        });
     })
 
 export type Server = typeof server;

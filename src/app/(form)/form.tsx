@@ -18,15 +18,42 @@ import { client } from "@/server/client";
 import { formatDate } from "date-fns";
 
 const EnglishProficiencyForm = () => {
-    const [state, formAction, isPending] = useActionState<any, FormDataState>(
+    const [state, formAction, isPending] = useActionState<{
+    success: true;
+    message: string;
+    error: null;
+    fieldErrors: {};
+} | {
+    success: false;
+    error: string;
+    fieldErrors: {};
+} | null, FormDataState>(
         async (_, formData) => {
             const response = await client.api.v1.applications.$post({
                 form: formData,
             });
 
-            return await response.json();
+            const newState =  await response.json();
+
+            if (newState.error === null && newState.message) {
+                toast.success(newState.message);
+                return {
+                    success: true,
+                    message: newState.message,
+                    error: null,
+                    fieldErrors: {},
+                };
+            } else {
+                const errorMsg = typeof newState.error === "string" ? newState.error : "An unknown error occurred.";
+                toast.error(errorMsg);
+                return {
+                    success: false,
+                    error: errorMsg,
+                    fieldErrors: newState.fieldErrors ?? {},
+                };
+            }
         },
-        { success: false, error: "", applicationId: undefined, message: undefined, fieldErrors: {} }
+        null
     );
 
     const [graduationDate, setGraduationDate] = useState<Date | undefined>(undefined);
@@ -34,13 +61,14 @@ const EnglishProficiencyForm = () => {
     const [paymentReceiptFile, setPaymentReceiptFile] = useState<File | null>(null);
     const [modeOfPostage, setModeOfPostage] = useState<string>("");
 
-    useEffect(() => {
-        if (state.success && state.message) {
-            toast.success(state.message);
-        } else if (!state.success && state.error) {
-            toast.error(state.error);
+    // Helper type guard for field errors
+    function getFieldError<T extends string>(field: T): string | undefined {
+        if (state && state.fieldErrors && typeof state.fieldErrors === 'object' && field in state.fieldErrors) {
+            // @ts-ignore
+            return state.fieldErrors[field];
         }
-    }, [state]);
+        return undefined;
+    }
 
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { name, files } = e.target;
@@ -57,10 +85,19 @@ const EnglishProficiencyForm = () => {
         setGraduationDate(undefined);
         setCertificateFile(null);
         setPaymentReceiptFile(null);
-        if (state.message) state.message = undefined;
-        if (state.error) state.error = undefined;
-        if (state.fieldErrors) state.fieldErrors = {};
+        setModeOfPostage("");
     };
+
+    useEffect(() => {
+        if (state && state.success) {
+            setGraduationDate(undefined);
+            setCertificateFile(null);
+            setPaymentReceiptFile(null);
+            setModeOfPostage("");
+            const form = document.getElementById("englishProficiencyForm") as HTMLFormElement | null;
+            if (form) form.reset();
+        }
+    }, [state]);
 
     return (
         <div className="min-h-screen bg-background sm:py-8 sm:px-6 lg:px-8 flex justify-center items-start">
@@ -74,11 +111,16 @@ const EnglishProficiencyForm = () => {
                     </CardTitle>
                     <CardDescription className="mt-2 text-muted-foreground">
                         Please fill out the form accurately. Fields marked with <span className="text-red-500">*</span> are required.
-                        {state.applicationId && <p className="mt-2 text-green-600 font-semibold">Application Submitted! ID: {state.applicationId}</p>}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="sm:pt-6 px-2 sm:px-6">
-                    {state.error && !state.fieldErrors && (
+                    {state && state.success && (
+                        <div className="mb-6 p-3 bg-green-100 border border-green-400 text-green-700 rounded-md">
+                            <p className="font-semibold">Success:</p>
+                            <p>{state.message}</p>
+                        </div>
+                    )}
+                    {state && !state.success && state.error && (!state.fieldErrors || Object.keys(state.fieldErrors).length === 0) && (
                         <div className="mb-6 p-3 bg-red-100 border border-red-400 text-red-700 rounded-md">
                             <p className="font-semibold">Error:</p>
                             <p>{state.error}</p>
@@ -100,7 +142,7 @@ const EnglishProficiencyForm = () => {
                                 required
                                 className="mt-1"
                             />
-                            {state.fieldErrors?.email && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.email}</p>}
+                            {getFieldError('email') && <p className="text-red-500 text-xs mt-1">{getFieldError('email')}</p>}
                         </div>
 
                         <fieldset className="space-y-6 p-6 border rounded-lg">
@@ -110,7 +152,7 @@ const EnglishProficiencyForm = () => {
                                 <div className="space-y-1.5">
                                     <Label htmlFor="matriculation_number" className="font-medium">Matriculation Number <span className="text-red-500">*</span></Label>
                                     <Input id="matriculation_number" name="matriculation_number" placeholder="E.g., 212xxx" />
-                                    {state.fieldErrors?.matriculation_number && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.matriculation_number}</p>}
+                                    {getFieldError('matriculation_number') && <p className="text-red-500 text-xs mt-1">{getFieldError('matriculation_number')}</p>}
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="sex" className="font-medium">Sex <span className="text-red-500">*</span></Label>
@@ -123,7 +165,7 @@ const EnglishProficiencyForm = () => {
                                             <SelectItem value="female">Female</SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    {state.fieldErrors?.sex && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.sex}</p>}
+                                    {getFieldError('sex') && <p className="text-red-500 text-xs mt-1">{getFieldError('sex')}</p>}
                                 </div>
                             </div>
 
@@ -131,17 +173,17 @@ const EnglishProficiencyForm = () => {
                                 <div className="space-y-1.5">
                                     <Label htmlFor="surname" className="font-medium">Surname (as in Certificate) <span className="text-red-500">*</span></Label>
                                     <Input id="surname" name="surname" required placeholder="E.g., Doe" />
-                                    {state.fieldErrors?.surname && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.surname}</p>}
+                                    {getFieldError('surname') && <p className="text-red-500 text-xs mt-1">{getFieldError('surname')}</p>}
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="firstname" className="font-medium">First Name (as in Certificate) <span className="text-red-500">*</span></Label>
                                     <Input id="firstname" name="firstname" required placeholder="E.g., John" />
-                                    {state.fieldErrors?.firstname && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.firstname}</p>}
+                                    {getFieldError('firstname') && <p className="text-red-500 text-xs mt-1">{getFieldError('firstname')}</p>}
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="middlename" className="font-medium">Middle Name (as in Certificate)</Label>
                                     <Input id="middlename" name="middlename" placeholder="Optional" />
-                                    {state.fieldErrors?.middlename && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.middlename}</p>}
+                                    {getFieldError('middlename') && <p className="text-red-500 text-xs mt-1">{getFieldError('middlename')}</p>}
                                 </div>
                             </div>
                         </fieldset>
@@ -154,12 +196,12 @@ const EnglishProficiencyForm = () => {
                                 <div className="space-y-1.5">
                                     <Label htmlFor="department" className="font-medium">Department <span className="text-red-500">*</span></Label>
                                     <Input id="department" name="department" required placeholder="E.g., Computer Science" />
-                                    {state.fieldErrors?.department && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.department}</p>}
+                                    {getFieldError('department') && <p className="text-red-500 text-xs mt-1">{getFieldError('department')}</p>}
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="course_of_study" className="font-medium">Course of Study <span className="text-red-500">*</span></Label>
                                     <Input id="course_of_study" name="course_of_study" required placeholder="E.g., B.Sc. Computer Science" />
-                                    {state.fieldErrors?.course_of_study && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.course_of_study}</p>}
+                                    {getFieldError('course_of_study') && <p className="text-red-500 text-xs mt-1">{getFieldError('course_of_study')}</p>}
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="year_of_graduation_trigger" className="font-medium">Year of Graduation <span className="text-red-500">*</span></Label>
@@ -194,7 +236,7 @@ const EnglishProficiencyForm = () => {
                                             value={formatDate(graduationDate, "PPP")} 
                                         />
                                     )}
-                                    {state.fieldErrors?.year_of_graduation && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.year_of_graduation}</p>}
+                                    {getFieldError('year_of_graduation') && <p className="text-red-500 text-xs mt-1">{getFieldError('year_of_graduation')}</p>}
                                     {!graduationDate && <input type="hidden" name="year_of_graduation" value="" required />}
                                 </div>
                                 <div className="space-y-1.5">
@@ -211,12 +253,12 @@ const EnglishProficiencyForm = () => {
                                             <SelectItem value="Pass">Pass</SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    {state.fieldErrors?.class_of_degree && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.class_of_degree}</p>}
+                                    {getFieldError('class_of_degree') && <p className="text-red-500 text-xs mt-1">{getFieldError('class_of_degree')}</p>}
                                 </div>
                                 <div className="md:col-span-2 space-y-1.5">
                                     <Label htmlFor="degree_awarded" className="font-medium">Degree Awarded <span className="text-red-500">*</span></Label>
                                     <Input id="degree_awarded" name="degree_awarded" required placeholder="E.g., Bachelor of Science" />
-                                    {state.fieldErrors?.degree_awarded && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.degree_awarded}</p>}
+                                    {getFieldError('degree_awarded') && <p className="text-red-500 text-xs mt-1">{getFieldError('degree_awarded')}</p>}
                                 </div>
                             </div>
                         </fieldset>
@@ -228,12 +270,12 @@ const EnglishProficiencyForm = () => {
                             <div className="space-y-1.5">
                                 <Label htmlFor="reference_number" className="font-medium">Reference Number (if applicable)</Label>
                                 <Input id="reference_number" name="reference_number" placeholder="Optional" />
-                                {state.fieldErrors?.reference_number && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.reference_number}</p>}
+                                {getFieldError('reference_number') && <p className="text-red-500 text-xs mt-1">{getFieldError('reference_number')}</p>}
                             </div>
                             <div className="space-y-1.5">
                                 <Label htmlFor="recipient_address" className="font-medium">Recipient Address <span className="text-red-500">*</span></Label>
                                 <textarea id="recipient_address" name="recipient_address" required rows={3} className="w-full border rounded-md p-2 focus:ring-ring focus:border-ring text-sm bg-background" placeholder="Detailed address please..."></textarea>
-                                {state.fieldErrors?.recipient_address && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.recipient_address}</p>}
+                                {getFieldError('recipient_address') && <p className="text-red-500 text-xs mt-1">{getFieldError('recipient_address')}</p>}
                             </div>
                             <div className="space-y-1.5">
                                 <Label className="font-medium">Mode of Postage <span className="text-red-500">*</span></Label>
@@ -253,13 +295,13 @@ const EnglishProficiencyForm = () => {
                                         </div>
                                     ))}
                                 </RadioGroup>
-                                {state.fieldErrors?.mode_of_postage && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.mode_of_postage}</p>}
+                                {getFieldError('mode_of_postage') && <p className="text-red-500 text-xs mt-1">{getFieldError('mode_of_postage')}</p>}
                             </div>
                             {modeOfPostage === "EMAIL" && (
                                 <div className="space-y-1.5">
                                     <Label htmlFor="recipient_email" className="font-medium">Recipient Email Address <span className="text-red-500">*</span></Label>
                                     <Input id="recipient_email" type="email" name="recipient_email" required={modeOfPostage === "EMAIL"} placeholder="E.g., recipient@example.com" />
-                                    {state.fieldErrors?.recipient_email && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.recipient_email}</p>}
+                                    {getFieldError('recipient_email') && <p className="text-red-500 text-xs mt-1">{getFieldError('recipient_email')}</p>}
                                 </div>
                             )}
                         </fieldset>
@@ -271,7 +313,7 @@ const EnglishProficiencyForm = () => {
                             <div className="space-y-1.5">
                                 <Label htmlFor="remita_rrr" className="font-medium">REMITA Payment Receipt RRR Number <span className="text-red-500">*</span></Label>
                                 <Input id="remita_rrr" name="remita_rrr" required placeholder="Enter RRR number" />
-                                {state.fieldErrors?.remita_rrr && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.remita_rrr}</p>}
+                                {getFieldError('remita_rrr') && <p className="text-red-500 text-xs mt-1">{getFieldError('remita_rrr')}</p>}
                             </div>
                             <div className="space-y-1.5">
                                 <Label htmlFor="certificate_file" className="font-medium">Certificate Upload (Original Scanned PDF) <span className="text-red-500">*</span></Label>
@@ -286,7 +328,7 @@ const EnglishProficiencyForm = () => {
                                     className="block w-full text-sm text-slate-500 file:px-4 file:rounded-sm p-1 file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer" 
                                 />
                                 {certificateFile && <p className="text-xs text-muted-foreground mt-1.5">Selected: {certificateFile.name}</p>}
-                                {state.fieldErrors?.certificate_file && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.certificate_file}</p>}
+                                {getFieldError('certificate_file') && <p className="text-red-500 text-xs mt-1">{getFieldError('certificate_file')}</p>}
                             </div>
                             <div className="space-y-1.5">
                                 <Label htmlFor="payment_receipt_file" className="font-medium">Payment Receipt Upload (PDF) <span className="text-red-500">*</span></Label>
@@ -301,7 +343,7 @@ const EnglishProficiencyForm = () => {
                                     className="block w-full text-sm text-slate-500 file:px-4 file:rounded-sm p-1 file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer" 
                                 />
                                 {paymentReceiptFile && <p className="text-xs text-muted-foreground mt-1.5">Selected: {paymentReceiptFile.name}</p>}
-                                {state.fieldErrors?.payment_receipt_file && <p className="text-red-500 text-xs mt-1">{state.fieldErrors.payment_receipt_file}</p>}
+                                {getFieldError('payment_receipt_file') && <p className="text-red-500 text-xs mt-1">{getFieldError('payment_receipt_file')}</p>}
                             </div>
                         </fieldset>
 
