@@ -140,7 +140,7 @@ const EnglishProficiencyForm = () => {
                                 type="email"
                                 name="email"
                                 required
-                                className="mt-1"
+                                className="mt-1 border-muted"
                             />
                             {getFieldError('email') && <p className="text-red-500 text-xs mt-1">{getFieldError('email')}</p>}
                         </div>
