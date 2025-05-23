@@ -17,10 +17,9 @@ import { LinearProgressIndicator } from "@/components/ui/linear-progress-indicat
 import { cn } from "@/lib/utils";
 import { SingleApplicationPage } from "./application-page";
 import { SettingsPage } from "./settings-page";
-import { AppContext } from "./app-context";
 import { SingleApplicationAction } from "./actions";
 
-const router = createBrowserRouter([
+const router = () => createBrowserRouter([
     {
         path: "/dashboard",
         Component: () => {
@@ -28,7 +27,6 @@ const router = createBrowserRouter([
             const isNavigating = Boolean(navigation.location);
 
             return (
-                <AppContext>
                     <SidebarProvider>
                         <AppSidebar />
                         <SidebarInset className="relative">
@@ -38,7 +36,6 @@ const router = createBrowserRouter([
                             <Outlet />
                         </SidebarInset>
                     </SidebarProvider>
-                </AppContext>
             )
         },
         ErrorBoundary: AppErrorBoundary,
@@ -74,6 +71,6 @@ const router = createBrowserRouter([
 
 export default function AppShell() {
     return (
-        <RouterProvider router={router} />
+        <RouterProvider router={router()}  />
     );
 }

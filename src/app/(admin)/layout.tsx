@@ -1,3 +1,4 @@
+import { SessionProvider } from "@/contexts/session";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -11,8 +12,10 @@ export default async function AdminLayout({ children }: PropsWithChildren) {
         redirect("/auth");
     }
     return (
-        <main>
-            {children}
-        </main>
+        <SessionProvider ctx={session}>
+            <main>
+                {children}
+            </main>
+        </SessionProvider>
     );
 }

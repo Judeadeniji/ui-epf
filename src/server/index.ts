@@ -2,7 +2,7 @@ import { db } from '@/drizzle/db';
 import { application, applicationHash } from '@/drizzle/schema';
 import { Hono, MiddlewareHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import { count, eq } from 'drizzle-orm';
+import { count, desc, eq } from 'drizzle-orm';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
@@ -83,7 +83,7 @@ const server = new Hono().basePath('/api/v1')
     })
 
     .get("/applications", verifyAuth, async (c) => {
-        const applications = await db.select().from(applicationHash).innerJoin(application, eq(applicationHash.application_id, application._id));
+        const applications = await db.select().from(applicationHash).innerJoin(application, eq(applicationHash.application_id, application._id)).orderBy(desc(applicationHash.created_at)).all();
         return c.json({
             status: true,
             data: applications,

@@ -9,10 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import { useAppContext } from './app-context';
+import { useSession } from '@/contexts/session';
 
 export function SettingsPage() {
-    const { data, isPending } = useAppContext();
+    const { user } = useSession();
     const { data: passkeys, isPending: passkeyPending, error: passkeyError, refetch: refetchPassKey } = useListPasskeys();
     const [loading, setLoading] = useState(false);
     const [profileForm, setProfileForm] = useState<{
@@ -33,25 +33,24 @@ export function SettingsPage() {
 
     // Initialize form data when session data is loaded
     useEffect(() => {
-        if (data?.user) {
             setProfileForm(prev => ({
                 ...prev,
-                name: data.user.name || '',
-                email: data.user.email || '',
+                name: user.name || '',
+                email: user.email || '',
             }));
-        }
-    }, [data]);
+        
+    }, []);
 
     const handleProfileUpdate: FormEventHandler = async (e) => {
         e.preventDefault();
-        if (!data?.user) return;
+        if (!user) return;
 
         setLoading(true);
         try {
             // Prepare image data if needed
             const updateData = {
                 name: profileForm.name,
-                // Leave image empty for now as noted in the TODO
+                // TODO: Upload image to server and get URL
                 image: ""
             };
 
@@ -59,13 +58,14 @@ export function SettingsPage() {
             await authClient.updateUser(updateData);
 
             // Only attempt email change if it's different from current
-            if (profileForm.email && profileForm.email !== data.user.email) {
+            if (profileForm.email && profileForm.email !== user.email) {
                 await authClient.changeEmail({
                     newEmail: profileForm.email,
                 });
             }
 
             toast.success('Profile updated successfully');
+            
         } catch (error) {
             console.error('Profile update error:', error);
             toast.error('Failed to update profile');
@@ -123,28 +123,6 @@ export function SettingsPage() {
         }
     };
 
-    // Show loading state while session data is being fetched
-    if (isPending) {
-        return (
-            <div className="flex items-center justify-center h-screen">
-                <Loader2 className="h-8 w-8 animate-spin" />
-                <span className="ml-2">Loading settings...</span>
-            </div>
-        );
-    }
-
-    // If no user data is available, handle appropriately
-    if (!data?.user) {
-        return (
-            <div className="container mx-auto py-6 text-center">
-                <h1 className="text-2xl font-bold">Session Error</h1>
-                <p className="text-muted-foreground mt-2">Unable to load user data. Please try signing in again.</p>
-                <Button onClick={() => signOut()} className="mt-4">
-                    Return to Sign In
-                </Button>
-            </div>
-        );
-    }
 
     return (
         <div className="container mx-auto p-6">
@@ -179,11 +157,11 @@ export function SettingsPage() {
                                                 <AvatarImage
                                                     src={profileForm.newImage
                                                         ? URL.createObjectURL(profileForm.newImage)
-                                                        : data.user.image || undefined}
-                                                    alt={data.user.name || "User"}
+                                                        : user.image || undefined}
+                                                    alt={user.name || "User"}
                                                 />
                                                 <AvatarFallback>
-                                                    {data.user.name ? data.user.name.charAt(0).toUpperCase() : "U"}
+                                                    {user.name ? user.name.charAt(0).toUpperCase() : "U"}
                                                 </AvatarFallback>
                                             </Avatar>
                                             <div>

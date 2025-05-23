@@ -17,7 +17,7 @@ import {
 import Image from "next/image"
 import { NavUser } from "./nav-user"
 import { NavMain } from "./nav-main"
-import { useAppContext } from "@/admin-app/app-context"
+import { useSession } from "@/contexts/session"
 
 const data = {
   navMain: [
@@ -41,7 +41,7 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { data: session } = useAppContext()
+  const { user } = useSession()
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -58,13 +58,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
 
       <SidebarFooter>
-        {session && (
+
           <NavUser user={{
-            name: session.user.name,
-            email: session.user.email,
-            avatar: session.user.image || "",
+            name: user.name,
+            email: user.email,
+            avatar: user.image || "",
           }} />
-        )}
       </SidebarFooter>
     </Sidebar>
   )
