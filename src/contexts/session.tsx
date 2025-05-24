@@ -1,6 +1,6 @@
 "use client";
 
-import { Session, User } from "better-auth";
+import type { Session, User } from "@/lib/types";
 import { redirect } from "next/navigation";
 import { createContext, use } from "react";
 

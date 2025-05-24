@@ -1,10 +1,9 @@
 import { client } from "@/server/client";
 import { ActionFunction } from "react-router";
 
-export const SingleApplicationAction: ActionFunction = async ({ params, request, context }) => {
+export const singleApplicationAction: ActionFunction = async ({ params, request, context }) => {
     const id = params.id;
     if (!id) {
-        console.error("Missing application ID");
         return { status: false, error: "Missing application ID" };
     }
 

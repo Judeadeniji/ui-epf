@@ -6,7 +6,8 @@ import {
     RouterProvider,
     useNavigation,
 } from "react-router";
-import { DashboardPage } from "./dashboard";
+import { OfficerDashboardPage } from "./officer-dashboard";
+import { AdminDashboardPage } from "./admin-dashboard";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
@@ -14,12 +15,12 @@ import { AppErrorBoundary } from "./error-boundary";
 import { dashboardLoader, singleApplicationLoader } from "./loaders";
 import { ApplicationsPage } from "./applications-page";
 import { LinearProgressIndicator } from "@/components/ui/linear-progress-indicator";
-import { cn } from "@/lib/utils";
 import { SingleApplicationPage } from "./application-page";
 import { SettingsPage } from "./settings-page";
-import { SingleApplicationAction } from "./actions";
+import { singleApplicationAction } from "./actions";
+import { useSession } from "@/contexts/session";
 
-const router = () => createBrowserRouter([
+const router = createBrowserRouter([
     {
         path: "/dashboard",
         Component: () => {
@@ -27,15 +28,14 @@ const router = () => createBrowserRouter([
             const isNavigating = Boolean(navigation.location);
 
             return (
-                    <SidebarProvider>
-                        <AppSidebar />
-                        <SidebarInset className="relative">
-                            <SiteHeader />
-                            {isNavigating && <LinearProgressIndicator isLoading={isNavigating} />}
-                            <section className={cn(isNavigating && "absolute inset-0 z-10 bg-white/70")} />
-                            <Outlet />
-                        </SidebarInset>
-                    </SidebarProvider>
+                <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset className="relative">
+                        <LinearProgressIndicator isLoading={isNavigating} />
+                        <SiteHeader />
+                        <Outlet />
+                    </SidebarInset>
+                </SidebarProvider>
             )
         },
         ErrorBoundary: AppErrorBoundary,
@@ -46,7 +46,16 @@ const router = () => createBrowserRouter([
         ),
         children: [
             {
-                Component: DashboardPage,
+                Component: () => {
+                    const { user } = useSession();
+                    const isAdmin = user.role === "admin";
+
+                    if (isAdmin) {
+                        return <AdminDashboardPage />
+                    }
+
+                    return <OfficerDashboardPage />
+                },
                 index: true,
                 loader: dashboardLoader,
             },
@@ -59,7 +68,7 @@ const router = () => createBrowserRouter([
                 path: "applications/:id",
                 Component: SingleApplicationPage,
                 loader: singleApplicationLoader,
-                action: SingleApplicationAction,
+                action: singleApplicationAction,
             },
             {
                 path: "settings",
@@ -71,6 +80,6 @@ const router = () => createBrowserRouter([
 
 export default function AppShell() {
     return (
-        <RouterProvider router={router()}  />
+        <RouterProvider router={router} />
     );
 }

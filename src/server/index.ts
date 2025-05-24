@@ -6,12 +6,12 @@ import { count, desc, eq } from 'drizzle-orm';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
-import { Session, User } from 'better-auth';
 import { Resend } from 'resend';
 import { EmailTemplate } from '@/components/email-template';
 import { EmailBody } from '@/components/email-body';
 import fs from 'fs/promises';
 import path from 'path';
+import { Session, User } from '@/lib/types';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const EMAIL_FROM = 'University of Ibadan <test@ui-epf.onrender.com>';

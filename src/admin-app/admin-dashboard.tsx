@@ -2,16 +2,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FileTextIcon, ListIcon, UsersIcon } from "lucide-react";
 import { useLoaderData } from "react-router";
 import { dashboardLoader } from "./loaders";
-import { ApplicationsTable } from "./applications-table";
 
-export function OfficerDashboardPage() {
-    const { applications, stats } = useLoaderData<typeof dashboardLoader>()
-
+export function AdminDashboardPage() {
+    const { stats } = useLoaderData<typeof dashboardLoader>()
+    const officers: string | any[] = [];
     return (
         <div className="flex flex-col min-h-screen bg-muted/40 p-4 sm:p-6 gap-y-4">
             <header>
                 <h1 className="text-3xl font-bold tracking-tight text-primary">Admin Dashboard</h1>
-                <p className="mt-1 text-muted-foreground">Overview of system activity and application statuses.</p>
+                <p className="mt-1 text-muted-foreground">
+                    Oversee officer performance and overall system activity.
+                </p>
             </header>
 
             <div className="grid auto-rows-min gap-4 md:grid-cols-3">
@@ -82,11 +83,22 @@ export function OfficerDashboardPage() {
             <div className="min-h-[100vh] flex-1 rounded-xl md:min-h-min">
                 <Card className="w-full h-full">
                     <CardHeader>
-                        <CardTitle>Recent Applications</CardTitle>
-                        <CardDescription>Overview of the latest application submissions.</CardDescription>
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <CardTitle>Officer Performance</CardTitle>
+                                <CardDescription>Overview of officer activity and assignments.</CardDescription>
+                            </div>
+                            <UsersIcon className="h-6 w-6 text-muted-foreground ml-4" />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <ApplicationsTable applications={applications} />
+                        {officers && Array.isArray(officers) && officers.length > 0 ? (
+                            <p>Officer data is available. An 'OfficersTable' component should be implemented here to display {officers.length} officer(s).</p>
+                        ) : officers ? (
+                            <p>No officers to display or officer data is not in the expected format.</p>
+                        ) : (
+                            <p>Officer data is currently unavailable. Ensure the data loader provides an 'officers' array.</p>
+                        )}
                     </CardContent>
                 </Card>
             </div>

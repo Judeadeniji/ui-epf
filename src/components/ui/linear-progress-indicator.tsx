@@ -14,16 +14,19 @@ export const LinearProgressIndicator = React.forwardRef<
   }
 
   return (
-    <div
-      ref={ref}
-      className={cn(
-        'linear-progress-indicator-container',
-        className
-      )}
-      {...props}
-    >
-      <div className="linear-progress-indicator-bar"></div>
-    </div>
+    <>
+      <div
+        ref={ref}
+        className={cn(
+          'linear-progress-indicator-container',
+          className
+        )}
+        {...props}
+      >
+        <div className="linear-progress-indicator-bar"></div>
+      </div>
+      <section className="absolute inset-0 z-10 bg-white/70" />
+    </>
   );
 });
 

@@ -4,6 +4,7 @@ import {
   LayoutDashboardIcon,
   ListIcon,
   SettingsIcon,
+  UsersIcon,
 } from "lucide-react"
 
 import {
@@ -38,6 +39,29 @@ const data = {
       icon: SettingsIcon,
     },
   ],
+  navAdmin: [
+    {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: LayoutDashboardIcon,
+      isIndex: true
+    },
+    {
+      title: "officers",
+      url: "/dashboard/officers",
+      icon: UsersIcon,
+    },
+    {
+      title: "Applications",
+      url: "/dashboard/applications",
+      icon: ListIcon,
+    },
+    {
+      title: "Settings",
+      url: "/dashboard/settings",
+      icon: SettingsIcon,
+    },
+  ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -54,11 +78,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={user.role === "admin" ? data.navAdmin : data.navMain} />
       </SidebarContent>
 
       <SidebarFooter>
-
           <NavUser user={{
             name: user.name,
             email: user.email,

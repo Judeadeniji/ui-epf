@@ -65,7 +65,6 @@ export function SettingsPage() {
             }
 
             toast.success('Profile updated successfully');
-            
         } catch (error) {
             console.error('Profile update error:', error);
             toast.error('Failed to update profile');
@@ -96,6 +95,7 @@ export function SettingsPage() {
             await authClient.changePassword({
                 currentPassword: passwordForm.currentPassword,
                 newPassword: passwordForm.newPassword,
+                revokeOtherSessions: true,
             });
 
             toast.success('Password updated successfully');
@@ -105,12 +105,10 @@ export function SettingsPage() {
                 newPassword: '',
                 confirmPassword: '',
             });
-
-            // Sign out after password change for security
-            await signOut();
-            toast.success('You have been signed out. Please log in again.');
         } catch (error) {
-            toast.error('Failed to update password');
+            toast.error('Failed to update password', {
+                description: (error as Error).message
+            });
         } finally {
             setLoading(false);
         }
