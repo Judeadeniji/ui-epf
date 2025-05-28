@@ -1,6 +1,7 @@
 import { authClient } from "@/lib/auth-client";
 import { client } from "@/server/client";
 import { LoaderFunction } from "react-router";
+import { toast } from "sonner";
 
 
 export const dashboardLoader = (async () => {
@@ -192,6 +193,37 @@ export const allUsersLoader = (async ({ request }) => {
             error: e instanceof Error ? e.message : "An unexpected error occurred",
             data: [],
             meta: { total: 0, limit, offset: offset }
+        };
+    }
+}) satisfies LoaderFunction;
+
+export const singleOfficerLoader = (async ({ params }) => {
+    const id = params.id;
+    if (!id) {
+        return { status: false, error: "Missing officer ID" };
+    }
+
+    try {
+        const response = await client.api.v1.users[":userId"].$get({
+            param: {
+                userId: id,
+            },
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            toast.error("Failed to fetch officer details", {
+                description: data.error || "An unexpected error occurred",
+            });
+            return data
+        }
+
+        const data = await response.json();
+        return data;
+    } catch (e) {
+        return {
+            status: false as const,
+            error: e instanceof Error ? e.message : "An unexpected error occurred",
         };
     }
 }) satisfies LoaderFunction;

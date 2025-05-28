@@ -12,7 +12,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppErrorBoundary } from "./error-boundary";
-import { allUsersLoader, applicationsLoader, dashboardLoader, singleApplicationLoader } from "./loaders";
+import { allUsersLoader, applicationsLoader, dashboardLoader, singleApplicationLoader, singleOfficerLoader } from "./loaders";
 import { ApplicationsPage } from "./applications-page";
 import { LinearProgressIndicator } from "@/components/ui/linear-progress-indicator";
 import { SingleApplicationPage } from "./application-page";
@@ -81,6 +81,7 @@ const router = (isAdmin: boolean) => createBrowserRouter([
                     {
                         path: "officers/:id",
                         Component: SingleOfficerPageLazy,
+                        loader: singleOfficerLoader,
                     }
                 ] : []
             ),

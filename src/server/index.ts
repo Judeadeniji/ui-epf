@@ -125,7 +125,7 @@ const server = new Hono().basePath('/api/v1')
             .from(applicationHash)
             .innerJoin(application, eq(applicationHash.application_id, application._id))
             .$dynamic();
-        
+
         const conditions = [];
 
         if (filters && filters.length > 0) {
@@ -359,10 +359,10 @@ const server = new Hono().basePath('/api/v1')
             },
             application: t_app,
         }).from(applicationHash).where(eq(applicationHash.application_id, id)).innerJoin(application, eq(applicationHash.application_id, application._id))
-        .leftJoin(user,
-            eq(applicationHash.approved_by, user.id),
-        )
-        .get();
+            .leftJoin(user,
+                eq(applicationHash.approved_by, user.id),
+            )
+            .get();
 
 
         if (!applicationData) {
@@ -399,7 +399,7 @@ const server = new Hono().basePath('/api/v1')
         const feedback = formBody.feedback as string | undefined;
         const docFile = formBody['doc-upload'] as File | undefined;
 
-        
+
         if (!isAdmin && !["pre-approved", "rejected"].includes(decision)) {
             return c.json(
                 {
@@ -525,6 +525,59 @@ const server = new Hono().basePath('/api/v1')
             status: true,
             data: updatedApplicationHash,
         });
+    })
+    .get("/users/:userId", verifyAuth, async (c) => {
+        const userId = c.req.param("userId");
+        if (!userId) {
+            return c.json({
+                status: false,
+                error: "Missing user ID",
+            }, 400);
+        }
+        // Fetch the user details first
+        const userDetails = await db.select(getTableColumns(user))
+            .from(user)
+            .where(eq(user.id, userId))
+            .get();
+
+        let userData; // This will be the final object for the response
+
+        if (userDetails) {
+            // Fetch all applications that this user approved or pre-approved
+            const approvedApplicationsList = await db.select({
+                application: getTableColumns(application),
+                applicationHash: getTableColumns(applicationHash)
+            })
+                .from(applicationHash)
+                .innerJoin(application, eq(applicationHash.application_id, application._id))
+                .where(
+                    sql.join([
+                        eq(applicationHash.approved_by, userId),
+                        or( // Check if the status is 'approved' or 'pre-approved'
+                            eq(applicationHash.status, "approved"),
+                            eq(applicationHash.status, "pre-approved")
+                        )
+                    ], sql` AND `)
+                )
+                .orderBy(desc(applicationHash.approved_at)) // Order by the approval date
+                .all();
+
+            userData = {
+                ...userDetails, // Spread user details (id, name, email, role, etc.)
+                approvedApplications: approvedApplicationsList // Add the list of approved applications
+            };
+        }
+
+        if (!userData) {
+            return c.json({
+                status: false,
+                error: "User not found",
+            }, 404);
+        }
+        return c.json({
+            status: true,
+            data: userData,
+        }, 200);
     })
 
 export type Server = typeof server;
