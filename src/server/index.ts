@@ -1,8 +1,8 @@
 import { db } from '@/drizzle/db';
-import { application, applicationHash } from '@/drizzle/schema';
+import { application, applicationHash, user } from '@/drizzle/schema';
 import { Hono, MiddlewareHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import { count, desc, eq } from 'drizzle-orm';
+import { count, desc, eq, getTableColumns, isNull, or, sql } from 'drizzle-orm';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
@@ -11,7 +11,7 @@ import { EmailTemplate } from '@/components/email-template';
 import { EmailBody } from '@/components/email-body';
 import fs from 'fs/promises';
 import path from 'path';
-import { Session, User } from '@/lib/types';
+import { ApplicationFilter, Session, User } from '@/lib/types';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const EMAIL_FROM = 'University of Ibadan <test@ui-epf.onrender.com>';
@@ -24,13 +24,13 @@ const saveFile = async (file: File, subfolder: string): Promise<string | undefin
         // Ensure the base 'public/uploads' directory exists relative to the project root
         const baseUploadsDir = path.join(process.cwd(), 'public', 'uploads');
         const uploadsDir = path.join(baseUploadsDir, subfolder);
-        
+
         await fs.mkdir(uploadsDir, { recursive: true }); // Ensure specific subfolder directory exists
 
         // Sanitize filename to prevent path traversal and other issues
         const sanitizedFileName = path.basename(file.name);
         const filePath = path.join(uploadsDir, sanitizedFileName);
-        
+
         const arrayBuffer = await file.arrayBuffer();
         await fs.writeFile(filePath, Buffer.from(arrayBuffer));
 
@@ -58,8 +58,15 @@ const verifyAuth: MiddlewareHandler<{
     if (!session) {
         return c.json({
             status: false,
-            message: "Unauthorized",
+            message: auth.$ERROR_CODES.CREDENTIAL_ACCOUNT_NOT_FOUND,
         }, 401);
+    }
+
+    if (session.user.banned) {
+        return c.json({
+            status: false,
+            message: auth.$ERROR_CODES.BANNED_USER
+        })
     }
 
     c.set("session", session);
@@ -71,23 +78,105 @@ const server = new Hono().basePath('/api/v1')
     .onError((err, c) => {
         if (err instanceof HTTPException) {
             return c.json({
-                status: false,
+                status: false as const,
+                error: err.message,
                 message: err.message,
             }, err.status);
         }
 
         return c.json({
-            status: false,
+            status: false as const,
+            error: "Internal Server Error",
             message: err.message,
         }, 500);
     })
 
-    .get("/applications", verifyAuth, async (c) => {
-        const applications = await db.select().from(applicationHash).innerJoin(application, eq(applicationHash.application_id, application._id)).orderBy(desc(applicationHash.created_at)).all();
-        return c.json({
-            status: true,
-            data: applications,
+    .get("/applications", verifyAuth, zValidator("query", z.object({
+        page: z.coerce.number().int().min(1).optional().default(1),
+        pageSize: z.coerce.number().int().min(1).max(100).optional().default(10),
+        filters: z.string().optional().transform((val) => {
+            if (val) {
+                try {
+                    return JSON.parse(val) as ApplicationFilter[];
+                } catch (e) {
+                    console.error("Failed to parse filters:", e);
+                    return [];
+                }
+            }
+            return [];
+        }),
+    })), async (c) => {
+        const isAdmin = c.var.session.user.role === "admin";
+        const { page, pageSize, filters } = c.req.valid("query");
+        const offset = (page - 1) * pageSize;
+
+        let query = db.select({
+            application: application,
+            application_hash: applicationHash
         })
+            .from(applicationHash)
+            .innerJoin(application, eq(applicationHash.application_id, application._id))
+            .orderBy(desc(applicationHash.created_at))
+            .limit(pageSize)
+            .offset(offset)
+            .$dynamic();
+
+        let totalQuery = db.select({ count: count() })
+            .from(applicationHash)
+            .innerJoin(application, eq(applicationHash.application_id, application._id))
+            .$dynamic();
+        
+        const conditions = [];
+
+        if (filters && filters.length > 0) {
+            for (const filter of filters) {
+                switch (filter.field) {
+                    case "status":
+                        conditions.push(eq(applicationHash.status, filter.value as "pending" | "pre-approved" | "approved" | "rejected"));
+                        break;
+                    case "department":
+                        conditions.push(eq(application.department, filter.value));
+                        break;
+                    case "applicantName":
+                        // This requires searching across two columns, potentially with OR
+                        // and splitting the filter value. Drizzle doesn't directly support
+                        // complex OR across columns in a simple `where` like this without
+                        // using raw SQL or more complex query building.
+                        // For simplicity, this example might only search surname or firstname.
+                        // A more robust solution would involve `sql` template or splitting `filter.value`.
+                        conditions.push(sql`(${application.firstname} LIKE ${'%' + filter.value + '%'} OR ${application.surname} LIKE ${'%' + filter.value + '%'})`);
+                        break;
+                    case "matriculationNumber":
+                        conditions.push(eq(application.matriculation_number, filter.value));
+                        break;
+                    // Add more cases for other filterable fields from your schema
+                }
+            }
+        }
+
+        if (conditions.length > 0) {
+            query = query.where(sql.join(conditions, sql` AND `));
+            totalQuery = totalQuery.where(sql.join(conditions, sql` AND `));
+        }
+
+        const [applicationsResult, totalRecordsResult] = await Promise.all([
+            query.all(),
+            totalQuery.get()
+        ]);
+
+        const totalItems = totalRecordsResult?.count ?? 0;
+        const totalPages = Math.ceil(totalItems / pageSize);
+
+        return c.json({
+            status: true as const,
+            data: applicationsResult,
+            meta: {
+                totalItems,
+                totalPages,
+                currentPage: page,
+                pageSize: pageSize,
+            }
+        });
     })
 
     .post("/applications", zValidator("form", z.object({
@@ -165,7 +254,6 @@ const server = new Hono().basePath('/api/v1')
 
                 await tx.insert(applicationHash).values({
                     application_id: applicationInsertResult.id,
-                    status: "pending",
                 });
 
                 // Send email on successful application
@@ -231,19 +319,16 @@ const server = new Hono().basePath('/api/v1')
 
     .get("/applications/stats", verifyAuth, async (c) => {
         try {
+            const isAdmin = c.var.session.user.role === "admin";
             const totalApplications = await db.select({ value: count() }).from(applicationHash).get({ value: 0 });
             const pendingApplications = await db.select({ value: count() }).from(applicationHash).where(eq(applicationHash.status, "pending")).get({ value: 0 });
             const approvedApplications = await db.select({ value: count() }).from(applicationHash).where(eq(applicationHash.status, "approved")).get({ value: 0 });
-
-            console.log({
-                totalApplications,
-                pendingApplications,
-                approvedApplications,
-            })
+            const totalUsers = isAdmin ? await db.select({ value: count() }).from(user).get({ value: 0 }) : undefined;
 
             return c.json({
                 status: true,
                 data: {
+                    totalUsers: isAdmin ? totalUsers?.value || 0 : undefined,
                     total: totalApplications?.value || 0,
                     pending: pendingApplications?.value || 0,
                     approved: approvedApplications?.value || 0,
@@ -265,7 +350,21 @@ const server = new Hono().basePath('/api/v1')
             }, 400);
         }
 
-        const applicationData = await db.select().from(applicationHash).where(eq(applicationHash.application_id, id)).innerJoin(application, eq(applicationHash.application_id, application._id)).get();
+        const t_app = getTableColumns(application);
+        const t_appHash = getTableColumns(applicationHash);
+        const applicationData = await db.select({
+            application_hash: {
+                ...t_appHash,
+                approved_by: user.name,
+            },
+            application: t_app,
+        }).from(applicationHash).where(eq(applicationHash.application_id, id)).innerJoin(application, eq(applicationHash.application_id, application._id))
+        .leftJoin(user,
+            eq(applicationHash.approved_by, user.id),
+        )
+        .get();
+
+
         if (!applicationData) {
             return c.json({
                 status: false,
@@ -282,6 +381,7 @@ const server = new Hono().basePath('/api/v1')
     .post("/applications/:id", verifyAuth, async (c) => {
         const id = c.req.param("id");
         const { user } = c.var.session;
+        const isAdmin = user.role === "admin";
         if (!id) {
             return c.json(
                 {
@@ -295,11 +395,12 @@ const server = new Hono().basePath('/api/v1')
             dot: true,
         });
 
-        const decision = formBody.decision as string;
+        const decision = formBody.decision as "approved" | "pre-approved" | "rejected";
         const feedback = formBody.feedback as string | undefined;
         const docFile = formBody['doc-upload'] as File | undefined;
 
-        if (decision !== "approve" && decision !== "reject") {
+        
+        if (!isAdmin && !["pre-approved", "rejected"].includes(decision)) {
             return c.json(
                 {
                     status: false,
@@ -310,7 +411,7 @@ const server = new Hono().basePath('/api/v1')
         }
 
         let processedDocumentLink: string | undefined = undefined;
-        if (decision === "approve" && docFile) {
+        if (decision === "pre-approved" && docFile) {
             if (docFile.size === 0) {
                 return c.json(
                     {
@@ -336,8 +437,9 @@ const server = new Hono().basePath('/api/v1')
         const updatedApplicationHash = await db
             .update(applicationHash)
             .set({
-                status: decision === "approve" ? "approved" : "rejected",
+                status: decision!,
                 approved_by: user.id,
+                approved_at: new Date(),
                 reason: feedback,
                 processed_document_link: processedDocumentLink,
             })
@@ -384,7 +486,7 @@ const server = new Hono().basePath('/api/v1')
                 appUrl: process.env.NEXT_PUBLIC_APP_URL
             });
 
-            if (decision === "approve") {
+            if (decision === "approved") {
                 emailSubject = "Your Application has been Approved";
             } else {
                 emailSubject = "Update on Your Application";
@@ -394,7 +496,7 @@ const server = new Hono().basePath('/api/v1')
                 try {
                     const { data, error: emailError } = await resend.emails.send({
                         from: EMAIL_FROM,
-                        to: recipientEmail,
+                        to: process.env.NODE_ENV === "development" ? "delivered@resend.dev" : recipientEmail,
                         subject: emailSubject,
                         react: EmailTemplate({
                             name: applicantName,

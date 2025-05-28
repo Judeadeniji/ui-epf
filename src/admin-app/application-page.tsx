@@ -9,11 +9,14 @@ import { useState } from "react";
 import { getStatusBadge } from "./components";
 import { LoaderCircle } from "lucide-react";
 import { formatDate } from "date-fns";
+import { useSession } from "@/contexts/session";
 
 export function SingleApplicationPage() {
+    const { user } = useSession();
+    const isAdmin = user.role === "admin";
     const submit = useSubmit();
     const applicationData = useLoaderData<typeof singleApplicationLoader>();
-    const [decision, setDecision] = useState<"approve" | "reject" | null>(null);
+    const [decision, setDecision] = useState<"pre-approved" | "approved" | "rejected" | null>(null);
     const [feedback, setFeedback] = useState("");
     const [docFile, setDocFile] = useState<File | null>(null);
     const [submitting, setSubmitting] = useState(false);
@@ -52,6 +55,8 @@ export function SingleApplicationPage() {
         setSubmitting(false);
     };
 
+    const approve = () => isAdmin ? "approved" : "pre-approved"
+
     return (
         <div className="min-h-screen bg-background">
             <div className="container mx-auto px-4 py-4 md:px-6">
@@ -64,6 +69,16 @@ export function SingleApplicationPage() {
                             Status: {getStatusBadge(application_hash.status)}
                         </div>
                     </div>
+                    {
+                        isAdmin && (<>
+                            <div className="space-y-2 text-muted-foreground">
+                                <p>Approved By: {application_hash.approved_by ?? "N/A"}</p>
+                                <div className="flex items-center gap-2">
+                                    Approval Date: {application_hash.approved_at ? formatDate(new Date(application_hash.approved_at), "PPPP") : "N/A"}
+                                </div>
+                            </div>
+                        </>)
+                    }
                 </div>
 
 
@@ -180,12 +195,12 @@ export function SingleApplicationPage() {
                                             <div className="mt-1">{fileLink(application_hash.processed_document_link, "View Sent Document")}</div>
                                         </div>
                                     )}
-                                    
+
                                     {!application_hash.reason && !(application_hash.status === "approved" && isEmailPostage && application_hash.processed_document_link) && (
                                         <p className="text-sm text-muted-foreground mt-2">
                                             This application has been processed. Current status: <span className="font-semibold">{application_hash.status}</span>.
                                         </p>
-                                     )}
+                                    )}
                                 </div>
                             ) : (
                                 <form className="space-y-6" onSubmit={handleSubmit}>
@@ -195,16 +210,16 @@ export function SingleApplicationPage() {
                                             <Button
                                                 type="button"
                                                 className="flex-1"
-                                                variant={decision === "approve" ? "default" : "outline"}
-                                                onClick={() => setDecision("approve")}
+                                                variant={decision === approve() ? "default" : "outline"}
+                                                onClick={() => setDecision(approve())}
                                             >
                                                 Approve
                                             </Button>
                                             <Button
                                                 type="button"
                                                 className="flex-1"
-                                                variant={decision === "reject" ? "destructive" : "outline"}
-                                                onClick={() => setDecision("reject")}
+                                                variant={decision === "rejected" ? "destructive" : "outline"}
+                                                onClick={() => setDecision("rejected")}
                                             >
                                                 Reject
                                             </Button>
@@ -216,7 +231,7 @@ export function SingleApplicationPage() {
                                         />
                                     </div>
 
-                                    {decision === "approve" && isEmailPostage && (
+                                    {decision === approve() && isEmailPostage && (
                                         <div className="space-y-2">
                                             <Label htmlFor="doc-upload">Upload File</Label>
                                             <Input
@@ -248,18 +263,18 @@ export function SingleApplicationPage() {
                                     <Button
                                         type="submit"
                                         className="w-full"
-                                        disabled={!decision || (decision === "approve" && isEmailPostage && !docFile) || submitting}
+                                        disabled={!decision || (decision === approve() && isEmailPostage && !docFile) || submitting}
                                     >
                                         {submitting ? <>
                                             <LoaderCircle className="animate-spin" />
                                             <span>
-                                                {decision === "approve" ? "Approving Application..." :
-                                                 decision === "reject" ? "Rejecting Application..." :
-                                                 "Submitting..."}
+                                                {decision === approve() ? "Approving Application..." :
+                                                    decision === "rejected" ? "Rejecting Application..." :
+                                                        "Submitting..."}
                                             </span>
                                         </> :
-                                            decision === "approve" ? "Approve Application" :
-                                                decision === "reject" ? "Reject Application" :
+                                            decision === approve() ? "Approve Application" :
+                                                decision === "rejected" ? "Reject Application" :
                                                     "Select Action"}
                                     </Button>
                                 </form>

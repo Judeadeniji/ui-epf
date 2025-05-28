@@ -1,6 +1,9 @@
 import { createAccessControl, Statements } from "better-auth/plugins/access"
+import { defaultStatements, adminAc } from "better-auth/plugins/admin/access";
+
 
 const statements = {
+    ...defaultStatements,
     applications: ["approve", "decline", "view", "re-view"],
 } satisfies Statements;
 
@@ -11,6 +14,7 @@ export const officer = accessControl.newRole({
 });
 
 export const admin = accessControl.newRole({
-    applications: ["approve", "decline", "view", "re-view"]
+    applications: ["approve", "decline", "view", "re-view"],
+    ...adminAc.statements,
 });
 

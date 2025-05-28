@@ -4,26 +4,6 @@ import { user } from "./auth-schema";
 
 export * from "./auth-schema";
 
-// interface FormDataState {
-//     email: string;
-//     matriculation_number: string;
-//     surname: string;
-//     firstname: string;
-//     middlename: string;
-//     sex: string;
-//     department: string;
-//     course_of_study: string;
-//     year_of_graduation: string;
-//     class_of_degree: string;
-//     degree_awarded: string;
-//     reference_number: string;
-//     recipient_address: string;
-//     mode_of_postage: string;
-//     recipient_email: string;
-//     remita_rrr: string;
-//     certificate_file: File | null;
-//     payment_receipt_file: File | null;
-// }
 
 export const application = sqliteTable("application", {
     _id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -50,7 +30,7 @@ export const application = sqliteTable("application", {
 export const applicationHash = sqliteTable("application_hash", {
     _id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     application_id: text("application_id").notNull().references(() => application._id),
-    status: text("status", { enum: ["pending", "approved", "rejected"] }).notNull(),
+    status: text("status", { enum: ["pending", "pre-approved", "approved", "rejected"] }).notNull().$defaultFn(() => "pending"),
     processed_document_link: text("processed_document_link"),
     created_at: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
     updated_at: integer("updated_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),

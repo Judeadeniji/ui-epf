@@ -5,6 +5,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { FilterIcon, SearchIcon, XIcon } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ApplicationFilter } from '@/lib/types';
+import { SearchInput } from '@/components/search-input';
 
 // Define available filter fields based on your application schema
 // This is a simplified example. You'll need to expand this.
@@ -15,11 +17,6 @@ const filterableFields = [
   { id: 'matriculationNumber', name: 'Matriculation No.', type: 'text' },
 ];
 
-export type ApplicationFilter = {
-  field: string;
-  value: string;
-  operator?: string; // e.g., 'is', 'contains', 'is_any_of'
-};
 
 interface ApplicationsFilterToolbarProps {
   searchTerm: string;
@@ -28,7 +25,6 @@ interface ApplicationsFilterToolbarProps {
   onAddFilter: (filter: ApplicationFilter) => void;
   onRemoveFilter: (filterIndex: number) => void;
   onClearFilters: () => void;
-  // TODO: Add props for available departments, etc., if using dynamic select options
 }
 
 export function ApplicationsFilterToolbar({
@@ -47,7 +43,7 @@ export function ApplicationsFilterToolbar({
     if (selectedField && filterValue) {
       onAddFilter({ field: selectedField, value: filterValue });
       setFilterValue('');
-      // setPopoverOpen(false); // Optionally close popover after adding
+      setPopoverOpen(false);
     }
   };
   
@@ -55,16 +51,8 @@ export function ApplicationsFilterToolbar({
 
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-2 p-4 border-b bg-card">
-      <div className="relative w-full sm:max-w-xs">
-        <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Search applications..."
-          className="pl-8 w-full"
-          value={searchTerm}
-          onChange={(e) => onSearchTermChange(e.target.value)}
-        />
-      </div>
+      <SearchInput onSearchChange={onSearchTermChange} value={searchTerm} />
+      
       <div className="flex items-center gap-2">
         <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
           <PopoverTrigger asChild>

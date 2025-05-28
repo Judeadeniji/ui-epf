@@ -14,6 +14,7 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuItem,
+  SidebarRail,
 } from "@/components/ui/sidebar"
 import Image from "next/image"
 import { NavUser } from "./nav-user"
@@ -45,9 +46,8 @@ const data = {
       url: "/dashboard",
       icon: LayoutDashboardIcon,
       isIndex: true
-    },
-    {
-      title: "officers",
+    },    {
+      title: "Users",
       url: "/dashboard/officers",
       icon: UsersIcon,
     },
@@ -88,6 +88,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             avatar: user.image || "",
           }} />
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   )
 }

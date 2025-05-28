@@ -8,6 +8,13 @@ import { passkey } from "better-auth/plugins/passkey";
 
 export const auth = betterAuth({
     appName: "University of Ibadan",
+    logger: {
+        disabled: false,
+        level: "debug",
+        log(level, message, ...args) {
+            console[level]("[AUTH]", message, ...args);
+        },
+    },
     database: drizzleAdapter(db, { provider: "sqlite" }),
     ...(process.env.NODE_ENV === "development" ? {
         trustedOrigins(request) {
@@ -29,6 +36,7 @@ export const auth = betterAuth({
     plugins: [pluginAdmin({
         ac: accessControl,
         defaultRole: "admin",
+        adminRoles: ["admin"],
         roles: {
             officer,
             admin,

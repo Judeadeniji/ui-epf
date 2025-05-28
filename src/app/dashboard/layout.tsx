@@ -11,7 +11,6 @@ export default async function AdminLayout({ children }: PropsWithChildren) {
     if (!session) {
         redirect("/auth");
     }
-
     return (
         <SessionProvider ctx={session}>
             <main>

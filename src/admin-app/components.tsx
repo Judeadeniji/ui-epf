@@ -4,15 +4,23 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  CircleDashed,
 } from "lucide-react";
 
 export function getStatusBadge(status: string) {
   switch (status) {
     case "pending":
       return (
-        <Badge variant="secondary">
+        <Badge variant="outline">
           <Clock className="mr-1 h-3 w-3" />
           Pending
+        </Badge>
+      );
+    case "pre-approved":
+      return (
+        <Badge variant="secondary">
+          <CircleDashed className="mr-1 h-3 w-3" />
+          Awaiting
         </Badge>
       );
     case "approved":

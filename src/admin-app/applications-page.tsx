@@ -1,76 +1,92 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ApplicationsTable } from "./applications-table";
-import { useLoaderData } from "react-router";
-import { dashboardLoader } from "./loaders"; // Assuming you might reuse or adapt the loader
-import { ApplicationsFilterToolbar, ApplicationFilter } from "./applications-filter-toolbar";
-import { useMemo, useState } from "react";
+import { useLoaderData, useSearchParams } from "react-router";
+import { applicationsLoader } from "./loaders";
+import { ApplicationsFilterToolbar } from "./applications-filter-toolbar";
+import { useMemo, useState, useEffect } from "react"; // Added Fragment
+import { Button } from "@/components/ui/button";
+import { ApplicationFilter } from "@/lib/types";
 
 export function ApplicationsPage() {
-  // If you have a specific loader for all applications, use that instead of dashboardLoader
-  const { applications: initialApplications } = useLoaderData<typeof dashboardLoader>();
+  const applications = useLoaderData<typeof applicationsLoader>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeFilters, setActiveFilters] = useState<ApplicationFilter[]>(() => {
+    const filtersParam = searchParams.get("filters");
+    if (filtersParam) {
+      try {
+        return JSON.parse(filtersParam);
+      } catch (e) {
+        console.error("Failed to parse filters from URL:", e);
+        return [];
+      }
+    }
+    return [];
+  });
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeFilters, setActiveFilters] = useState<ApplicationFilter[]>([]);
-  // TODO: Add state for sorting (column, direction)
-  // TODO: Add state for pagination (currentPage, itemsPerPage)
+  useEffect(() => {
+    const filtersParam = searchParams.get("filters");
+    if (filtersParam) {
+      try {
+        setActiveFilters(JSON.parse(filtersParam));
+      } catch (e) {
+        console.error("Failed to parse filters from URL during effect:", e);
+        setActiveFilters([]);
+      }
+    } else {
+      setActiveFilters([]);
+    }
+  }, [searchParams]);
+
+  const currentPage = parseInt(searchParams.get("page") || "1", 10);
+
+
+  const updateUrlParams = (newValues: Record<string, string | null>, resetPage: boolean = true) => {
+    const currentSearchParams = new URLSearchParams(searchParams);
+    for (const key in newValues) {
+      if (newValues[key] === null || newValues[key] === '') {
+        currentSearchParams.delete(key);
+      } else {
+        currentSearchParams.set(key, newValues[key] as string);
+      }
+    }
+    if (resetPage) {
+      currentSearchParams.set("page", "1");
+    }
+    setSearchParams(currentSearchParams, { replace: true });
+  };
 
   const handleAddFilter = (filter: ApplicationFilter) => {
-    setActiveFilters(prev => [...prev, filter]);
+    const newFilters = [...activeFilters, filter];
+    setActiveFilters(newFilters);
+    updateUrlParams({ filters: JSON.stringify(newFilters) });
   };
 
   const handleRemoveFilter = (filterIndex: number) => {
-    setActiveFilters(prev => prev.filter((_, index) => index !== filterIndex));
+    const newFilters = activeFilters.filter((_, index) => index !== filterIndex);
+    setActiveFilters(newFilters);
+    updateUrlParams({ filters: newFilters.length > 0 ? JSON.stringify(newFilters) : null });
   };
 
   const handleClearFilters = () => {
     setActiveFilters([]);
-    setSearchTerm("");
+    updateUrlParams({ filters: null, search: null });
   };
 
-  // Filter and sort logic - this is a basic example
-  const filteredApplications = useMemo(() => {
-    let apps = "data" in initialApplications ? initialApplications.data : [];
+  const applicationsOnPage = applications.status === true ? applications.data : [];
+  const paginationMeta = applications.status === true && applications.meta;
 
-    // Search term filtering (simple search across a few fields)
-    if (searchTerm) {
-      apps = apps.filter(app =>
-        `${app.application.firstname} ${app.application.surname}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.application.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.application.matriculation_number.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= (paginationMeta ? paginationMeta.pageSize : 1)) {
+      updateUrlParams({ page: newPage.toString() }, false);
     }
+  };
 
-    // Active filters
-    activeFilters.forEach(filter => {
-      apps = apps.filter(app => {
-        let valueToTest: string | undefined;
-        switch (filter.field) {
-          case 'status':
-            valueToTest = app.application_hash.status;
-            break;
-          case 'department':
-            valueToTest = app.application.department;
-            break;
-          case 'applicantName': // Example: combining fields for a filter
-             valueToTest = `${app.application.surname} ${app.application.firstname}`;
-            break;
-          case 'matriculationNumber':
-            valueToTest = app.application.matriculation_number;
-            break;
-          // Add more cases for other filterable fields from your schema
-        }
-        if (valueToTest === undefined) return false;
-        // This is a simple 'equals' check. You might need 'contains', 'startsWith', etc.
-        return valueToTest.toLowerCase() === filter.value.toLowerCase();
-      });
-    });
-    
-    // TODO: Implement sorting logic here
-    // TODO: Implement pagination logic here (slice the array based on currentPage and itemsPerPage)
 
-    return { ...initialApplications, data: apps }; // Maintain the original structure
+  const displayedApplications = useMemo(() => {
+    return applicationsOnPage;
+  }, [applicationsOnPage]);
 
-  }, [initialApplications, searchTerm, activeFilters]);
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/40 p-4 sm:p-6 gap-y-4">
@@ -82,8 +98,10 @@ export function ApplicationsPage() {
       </header>
 
       <ApplicationsFilterToolbar
-        searchTerm={searchTerm}
-        onSearchTermChange={setSearchTerm}
+        searchTerm={searchParams.get("search") || ""}
+        onSearchTermChange={(newSearchTerm) => {
+          updateUrlParams({ search: newSearchTerm });
+        }}
         activeFilters={activeFilters}
         onAddFilter={handleAddFilter}
         onRemoveFilter={handleRemoveFilter}
@@ -95,12 +113,76 @@ export function ApplicationsPage() {
           <CardHeader>
             <CardTitle className="text-xl">All Applications</CardTitle>
             <CardDescription>
-              A comprehensive list of all applications. Found {filteredApplications.data?.length || 0} results.
+              Displaying {displayedApplications.length}
+              {paginationMeta && ` of ${paginationMeta.totalItems} total applications.`}
+              {paginationMeta && paginationMeta.totalPages > 0 && ` Page ${paginationMeta.currentPage} of ${paginationMeta.totalPages}.`}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ApplicationsTable applications={filteredApplications} />
-            {/* TODO: Add Pagination Controls here */}
+            <ApplicationsTable applications={
+              applications.status === true
+                ? {
+                  status: true,
+                  data: displayedApplications,
+                  meta: paginationMeta || { totalItems: 0, totalPages: 1, currentPage: 1, pageSize: 10 }
+                }
+                : {
+                  status: false,
+                  error: applications.error || "Failed to load applications"
+                }
+            } />
+
+            {paginationMeta && paginationMeta.totalPages > 1 && (
+              <div className="flex items-center justify-center space-x-2 py-4 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                >
+                  Previous
+                </Button>
+                {(() => {
+                  const pageButtons = [];
+                  const totalPages = paginationMeta.totalPages;
+                  const pageRange = 2;
+                  let lastButtonWasEllipsis = false;
+
+                  for (let i = 1; i <= totalPages; i++) {
+                    if (
+                      totalPages <= 5 || // Show all if 5 or less
+                      i === 1 || // Always show first page
+                      i === totalPages || // Always show last page
+                      (i >= currentPage - pageRange && i <= currentPage + pageRange) // Show pages around current
+                    ) {
+                      pageButtons.push(
+                        <Button
+                          key={i}
+                          variant={i === currentPage ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePageChange(i)}
+                        >
+                          {i}
+                        </Button>
+                      );
+                      lastButtonWasEllipsis = false;
+                    } else if (!lastButtonWasEllipsis) {
+                      pageButtons.push(<span key={`ellipsis-${i}`} className="px-1">...</span>);
+                      lastButtonWasEllipsis = true;
+                    }
+                  }
+                  return pageButtons;
+                })()}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage >= paginationMeta.totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

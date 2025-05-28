@@ -12,15 +12,19 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppErrorBoundary } from "./error-boundary";
-import { dashboardLoader, singleApplicationLoader } from "./loaders";
+import { allUsersLoader, applicationsLoader, dashboardLoader, singleApplicationLoader } from "./loaders";
 import { ApplicationsPage } from "./applications-page";
 import { LinearProgressIndicator } from "@/components/ui/linear-progress-indicator";
 import { SingleApplicationPage } from "./application-page";
 import { SettingsPage } from "./settings-page";
 import { singleApplicationAction } from "./actions";
 import { useSession } from "@/contexts/session";
+import { lazy, useMemo } from "react";
 
-const router = createBrowserRouter([
+const AllOfficersPageLazy = lazy(() => import("./all-officers-page"));
+const SingleOfficerPageLazy = lazy(() => import("./single-officer-page"));
+
+const router = (isAdmin: boolean) => createBrowserRouter([
     {
         path: "/dashboard",
         Component: () => {
@@ -47,9 +51,6 @@ const router = createBrowserRouter([
         children: [
             {
                 Component: () => {
-                    const { user } = useSession();
-                    const isAdmin = user.role === "admin";
-
                     if (isAdmin) {
                         return <AdminDashboardPage />
                     }
@@ -62,7 +63,7 @@ const router = createBrowserRouter([
             {
                 path: "applications",
                 Component: ApplicationsPage,
-                loader: dashboardLoader,
+                loader: applicationsLoader,
             },
             {
                 path: "applications/:id",
@@ -70,6 +71,19 @@ const router = createBrowserRouter([
                 loader: singleApplicationLoader,
                 action: singleApplicationAction,
             },
+            ...(
+                isAdmin ? [
+                    {
+                        path: "officers",
+                        Component: AllOfficersPageLazy,
+                        loader: allUsersLoader,
+                    },
+                    {
+                        path: "officers/:id",
+                        Component: SingleOfficerPageLazy,
+                    }
+                ] : []
+            ),
             {
                 path: "settings",
                 Component: SettingsPage
@@ -79,7 +93,12 @@ const router = createBrowserRouter([
 ]);
 
 export default function AppShell() {
+    const { user } = useSession();
+    const isAdmin = user.role === "admin";
+
+    const memoizedRouter = useMemo(() => router(isAdmin), [isAdmin]);
+
     return (
-        <RouterProvider router={router} />
+        <RouterProvider router={memoizedRouter} />
     );
 }
