@@ -29,7 +29,7 @@ export default async function AuthPage() {
                     University of Ibadan
                 </figcaption>
             </figure>
-            <Tabs defaultValue="sign-in" className="mx-auto sm:w-fit">
+            {/* <Tabs defaultValue="sign-in" className="mx-auto sm:w-fit">
                 <TabsList className="mx-auto w-full">
                     <TabsTrigger value="sign-in">
                         Sign In
@@ -44,7 +44,7 @@ export default async function AuthPage() {
                 <TabsContent value="sign-up" className="w-full sm:w-lg">
                     <SignUp />
                 </TabsContent>
-            </Tabs>
+            </Tabs> */}
             <div className="mx-auto w-full sm:w-md">
                 <SignIn />
             </div>

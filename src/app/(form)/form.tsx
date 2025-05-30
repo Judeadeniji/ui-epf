@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { cn, FormDataState } from "@/lib/utils";
 import { client } from "@/server/client";
 import { formatDate, parseISO, isValid } from "date-fns"; // Import parseISO and isValid
+import { CalendarV2 } from "@/components/calendar-v2";
 
 type ModeOfPostageType = "email" | "hand_collection" | "delivery";
 const MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024; // 1MB
@@ -451,15 +452,16 @@ const EnglishProficiencyForm = () => {
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0">
-                                                <Calendar
+                                                <CalendarV2
                                                     mode="single"
-                                                    selected={graduationDate}
-                                                    onSelect={setGraduationDate}
+                                                    onDateChange={(date) => setGraduationDate(date ? date : undefined)}
+                                                    selectedDate={graduationDate}
                                                     initialFocus
                                                     captionLayout="buttons"
                                                     fromYear={1948}
                                                     toYear={new Date().getFullYear()}
                                                     className="w-full"
+                                                    pagedNavigation
                                                 />
                                             </PopoverContent>
                                         </Popover>
