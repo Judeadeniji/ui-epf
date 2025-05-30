@@ -27,19 +27,20 @@ export const auth = betterAuth({
     }
     } : {}),
     emailAndPassword: {
+        disableSignUp: process.env.NODE_ENV === "production",
         enabled: true,
-        async sendResetPassword(data, request) {
+        async sendResetPassword(data) {
             // TODO:Configure resend
-            console.log("sendResetPassword", data, request);
+            console.log("sendResetPassword", data);
         },
     },
     plugins: [pluginAdmin({
         ac: accessControl,
-        defaultRole: "admin",
+        defaultRole: "officer",
         adminRoles: ["admin"],
         roles: {
             officer,
             admin,
         }
-    }), haveIBeenPwned(), passkey(), nextCookies()],
+    }),  passkey(), nextCookies()],
 })

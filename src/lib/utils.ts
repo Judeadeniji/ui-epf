@@ -23,15 +23,15 @@ export type InferApiResponse<T, M extends "get" | "post" = "get"> = T extends Cl
     firstname: string;
     middlename: string;
     sex: "male" | "female";
-    department: string;
+    faculty: string;
     course_of_study: string;
     year_of_graduation: string;
     class_of_degree: string;
     degree_awarded: string;
     reference_number: string;
     recipient_address: string;
-    mode_of_postage: string;
-    recipient_email: string;
+    mode_of_postage: "email" | "hand_collection" | "delivery";
+    recipient_email?: string;
     remita_rrr: string;
     certificate_file: File;
     payment_receipt_file: File;

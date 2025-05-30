@@ -20,8 +20,8 @@ export default async function AuthPage() {
                 <Image
                     src="/UI_logo.png"
                     alt="Logo"
-                    width={100} 
-                    height={100} 
+                    width={100}
+                    height={100}
                     className="object-cover sm:w-[80px] sm:h-[80px] md:w-[100px] md:h-[100px]"
                     priority
                 />
@@ -39,12 +39,15 @@ export default async function AuthPage() {
                     </TabsTrigger>
                 </TabsList>
                 <TabsContent value="sign-in" className="w-full sm:w-md">
-                    <SignIn />
+                <SignIn />
                 </TabsContent>
                 <TabsContent value="sign-up" className="w-full sm:w-lg">
                     <SignUp />
                 </TabsContent>
             </Tabs>
+            <div className="mx-auto w-full sm:w-md">
+                <SignIn />
+            </div>
         </main>
     );
 }

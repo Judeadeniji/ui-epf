@@ -2,17 +2,20 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
- async rewrites() {
+  async rewrites() {
     return [
       {
         source: "/dashboard/:path*",
-        destination: "/dashboard", 
+        destination: "/dashboard",
       },
     ]
- },
- typescript: {
-  ignoreBuildErrors: true,
- }
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  compiler: {
+    removeConsole: true
+  }
 };
 
 export default nextConfig;

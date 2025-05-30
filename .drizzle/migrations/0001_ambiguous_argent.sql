@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `application_remita_rrr_unique` ON `application` (`remita_rrr`);
