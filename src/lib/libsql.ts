@@ -12,7 +12,7 @@ function getLocalDb() {
 
     const url = path.resolve(basePath, dbFile);
     // replace C with file and \ with /
-    const fileUrl = url.replace("C:", "file:///C:").replace(/\\/g, "/");
+    const fileUrl = `file://${url}`.replace(/\\/g, "/");
     return fileUrl;
   } catch (error) {
     throw new Error("No database file found", { cause: error });

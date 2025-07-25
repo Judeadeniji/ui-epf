@@ -1,0 +1,1 @@
+ALTER TABLE `application` RENAME COLUMN "course_of_study" TO "department";

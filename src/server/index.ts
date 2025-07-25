@@ -132,8 +132,8 @@ const server = new Hono().basePath('/api/v1')
                     case "status":
                         conditions.push(eq(applicationHash.status, filter.value as "pending" | "pre-approved" | "approved" | "rejected"));
                         break;
-                    case "course_of_study":
-                        conditions.push(eq(application.course_of_study, filter.value));
+                    case "faculty":
+                        conditions.push(eq(application.faculty, filter.value));
                         break;
                     case "faculty":
                         conditions.push(eq(application.faculty, filter.value));
@@ -182,7 +182,7 @@ const server = new Hono().basePath('/api/v1')
         firstname: z.string().min(1, "First name is required"),
         middlename: z.string().optional(),
         class_of_degree: z.string().min(1, "Class of degree is required"),
-        course_of_study: z.string().min(1, "Course of study is required"),
+        department: z.string().min(1, "Department is required"),
         degree_awarded: z.string().min(1, "Degree awarded is required"),
         faculty: z.string().min(1, "Faculty of study is required"),
         mode_of_postage: z.enum(["email", "hand_collection", "delivery"], {
@@ -220,6 +220,7 @@ const server = new Hono().basePath('/api/v1')
             }
 
             if (Object.keys(fieldErrors).length > 0) {
+                console.error("Validation errors:", fieldErrors);
                 return c.json({ success: false, error: "Validation failed. Please check the highlighted fields.", fieldErrors }, 400);
             }
 
@@ -288,7 +289,7 @@ const server = new Hono().basePath('/api/v1')
                             message: `Application submitted successfully! However, there was an error sending the confirmation email.`,
                             error: emailError.message,
                             fieldErrors: {}
-                        });
+                        }, 200);
                     }
                 } catch (e) {
                     console.error("Failed to send email (Application Submission Confirmation):", e);
@@ -297,7 +298,7 @@ const server = new Hono().basePath('/api/v1')
                         message: `Application submitted successfully! However, there was an error sending the confirmation email.`,
                         error: (e as Error).message,
                         fieldErrors: {}
-                    });
+                    }, 200);
                 }
 
                 return c.json(
@@ -306,7 +307,8 @@ const server = new Hono().basePath('/api/v1')
                         message: `Application submitted successfully!`,
                         error: null,
                         fieldErrors: {}
-                    }
+                    },
+                    200
                 )
             });
             return result;

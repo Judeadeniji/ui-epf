@@ -164,7 +164,7 @@ export function SingleApplicationPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm font-medium">Course of Study</Label>
-                                        <div>{application.course_of_study}</div>
+                                        <div>{application.department}</div>
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm font-medium">Year of Graduation</Label>

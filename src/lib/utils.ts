@@ -23,8 +23,8 @@ export type InferApiResponse<T, M extends "get" | "post" = "get"> = T extends Cl
     firstname: string;
     middlename: string;
     sex: "male" | "female";
+    department: string;
     faculty: string;
-    course_of_study: string;
     year_of_graduation: string;
     class_of_degree: string;
     degree_awarded: string;

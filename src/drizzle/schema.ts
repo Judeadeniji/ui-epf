@@ -13,7 +13,7 @@ export const application = sqliteTable("application", {
     middlename: text("middlename"),
     sex: text("sex", { enum: ["male", "female"] }).notNull(),
     matriculation_number: text("matriculation_number").notNull(),
-    course_of_study: text("course_of_study").notNull(),
+    department: text("department").notNull(),
     faculty: text("faculty").notNull(),
     year_of_graduation: text("year_of_graduation").notNull(),
     class_of_degree: text("class_of_degree").notNull(),
