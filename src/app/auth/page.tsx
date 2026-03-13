@@ -45,10 +45,11 @@ export default async function AuthPage() {
                     <SignUp />
                 </TabsContent>
             </Tabs> 
-            <div className="mx-auto w-full sm:w-md">
-                <SignIn />
-            </div>
+            {/*<div className="mx-auto w-full sm:w-md">
+               <SignIn />
+        </div>*/}
         </main>
     );
 
 }
+
