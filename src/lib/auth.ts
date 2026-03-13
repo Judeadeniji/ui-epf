@@ -27,7 +27,7 @@ export const auth = betterAuth({
     }
     } : {}),
     emailAndPassword: {
-        disableSignUp: process.env.NODE_ENV === "production",
+        // disableSignUp: process.env.NODE_ENV === "production",
         enabled: true,
         async sendResetPassword(data) {
             // TODO:Configure resend
@@ -43,4 +43,5 @@ export const auth = betterAuth({
             admin,
         }
     }),  passkey(), nextCookies()],
+
 })
