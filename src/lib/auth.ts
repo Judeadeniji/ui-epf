@@ -36,7 +36,7 @@ export const auth = betterAuth({
     },
     plugins: [pluginAdmin({
         ac: accessControl,
-        defaultRole: "officer",
+        defaultRole: "admin", // "officer",
         adminRoles: ["admin"],
         roles: {
             officer,
@@ -45,3 +45,4 @@ export const auth = betterAuth({
     }),  passkey(), nextCookies()],
 
 })
+
